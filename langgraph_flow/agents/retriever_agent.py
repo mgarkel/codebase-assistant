@@ -1,25 +1,15 @@
 import logging
-from typing import Dict, List
+from typing import Dict
 
-from langchain.schema import Document
-
-from ingestion.load_vectorstore import load_vectorstore
 from langgraph_flow.models.assistant_state import AssistantState
 from utils.agent_utils import (
-    get_combined_text_from_docs,
     get_question_and_config_from_state,
     get_relevant_code_context_chunks_from_vectorstore,
 )
 from utils.constants import (
     DEFAULT_TOK_K_RETRIEVER,
-    KEY_CHUNK,
-    KEY_CONFIG,
     KEY_CONFIG_RETRIEVER,
-    KEY_CONFIG_TOP_K,
-    KEY_QUESTION,
     KEY_RESPONSE,
-    KEY_SOURCE,
-    KEY_UNKNOWN,
 )
 
 logger = logging.getLogger(__name__)

@@ -1,34 +1,17 @@
 import logging
-import os
-from typing import Dict, List
+from typing import Dict
 
-from langchain.chat_models import ChatOpenAI
-from langchain.schema import Document
-
-from ingestion.load_vectorstore import load_vectorstore
 from langgraph_flow.models.assistant_state import AssistantState
 from utils.agent_utils import (
     OpenAIModel,
     get_agent_prompt_template,
-    get_combined_text_from_docs,
     get_question_and_config_from_state,
     get_relevant_code_context_chunks_from_vectorstore,
 )
 from utils.constants import (
     DEFAULT_TOP_K_EXPLAINER,
-    ENV_OPENAIAPI_KEY,
-    KEY_CHUNK,
-    KEY_CONFIG,
     KEY_CONFIG_EXPLAINER,
-    KEY_CONFIG_TOP_K,
-    KEY_INFERENCE_MODEL,
-    KEY_OPENAI,
-    KEY_QUESTION,
     KEY_RESPONSE,
-    KEY_SOURCE,
-    KEY_UNKNOWN,
-    MODEL_INFERENCE_OPEN_AI,
-    VALUES_UTF_8,
 )
 
 logger = logging.getLogger(__name__)
