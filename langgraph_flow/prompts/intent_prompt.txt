@@ -1,0 +1,7 @@
+Classify the user’s intent for the following question:
+"{question}"
+
+Return exactly one of:
+- retrieve   (fetch relevant code snippets)
+- explain    (describe what a snippet does)
+- navigate   (trace symbol usage across the repo)

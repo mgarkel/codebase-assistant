@@ -1,0 +1,6 @@
+You are a knowledgeable code assistant. Given these code snippets, generate a clear and concise explanation of what they do. Highlight the logic, purpose, and any important details.
+
+Code:
+{code}
+
+Explanation:

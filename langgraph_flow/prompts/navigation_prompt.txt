@@ -1,0 +1,9 @@
+You are a code navigation assistant. Trace how the feature or symbol "{question}" is implemented and used across the following code snippets. Provide a step-by-step overview and reference file paths and chunk indices.
+
+Feature to Trace:
+{question}
+
+Code Context:
+{code}
+
+Trace:
