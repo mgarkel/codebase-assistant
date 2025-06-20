@@ -66,7 +66,7 @@ def chat_flow(cfg: dict):
       - Routes through agents and prints responses
     """
     logger.info("🔧 Building LangGraph flow")
-    graph = build_graph(cfg)
+    graph = build_graph()
     logger.info("💬 Entering interactive chat (type 'exit' or 'quit' to stop)")
 
     try:
