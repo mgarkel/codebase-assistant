@@ -1,16 +1,13 @@
-import os
 import logging
+import os
 from typing import Dict
 
-from langchain_community.embeddings import OpenAIEmbeddings
-from langchain_community.vectorstores import Chroma, FAISS
+from langchain_community.vectorstores import FAISS, Chroma
 
+from langgraph_flow.models.openai_model import OpenAIModel
 from utils.constants import (
-    ENV_OPENAIAPI_KEY,
     KEY_CHROMA,
-    KEY_EMBEDDING_MODEL,
     KEY_FAISS,
-    KEY_OPENAI,
     KEY_PERSIST_DIRECTORY,
     KEY_TYPE,
     KEY_VECTORSTORE,
@@ -34,12 +31,7 @@ def load_vectorstore(cfg: Dict):
     )
     os.makedirs(persist_dir, exist_ok=True)
 
-    model_name = cfg[KEY_OPENAI][KEY_EMBEDDING_MODEL]
-    openai_api_key = os.getenv(ENV_OPENAIAPI_KEY)
-    logger.info("Using embedding model: %s", model_name)
-    embeddings = OpenAIEmbeddings(
-        model=model_name, openai_api_key=openai_api_key
-    )
+    embeddings = OpenAIModel(cfg).embedding_model
 
     try:
         if store_type == KEY_CHROMA:

@@ -32,11 +32,11 @@ def retrieve_code(state: AssistantState) -> Dict:
             cfg, question, KEY_CONFIG_RETRIEVER, DEFAULT_TOK_K_RETRIEVER
         )
         response = f"Here are the relevant code snippets:\n\n" + code_context
-        return {**state, KEY_RESPONSE: response}
+        return {**state.dict(), KEY_RESPONSE: response}
 
     except Exception as e:
         logger.error("Error during code retrieval: %s", e, exc_info=True)
         return {
-            **state,
+            **state.dict(),
             KEY_RESPONSE: "Sorry, I ran into an error while searching the codebase.",
         }

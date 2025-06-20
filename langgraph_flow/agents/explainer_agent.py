@@ -2,8 +2,8 @@ import logging
 from typing import Dict
 
 from langgraph_flow.models.assistant_state import AssistantState
+from langgraph_flow.models.openai_model import OpenAIModel
 from utils.agent_utils import (
-    OpenAIModel,
     get_agent_prompt_template,
     get_question_and_config_from_state,
     get_relevant_code_context_chunks_from_vectorstore,
@@ -48,4 +48,4 @@ def explain_code(state: AssistantState) -> Dict:
         return {**state, KEY_RESPONSE: "Error: failed to generate explanation."}
 
     logger.info("Generated explanation successfully")
-    return {**state, KEY_RESPONSE: explanation}
+    return {**state.dict(), KEY_RESPONSE: explanation}

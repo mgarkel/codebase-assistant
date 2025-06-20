@@ -2,8 +2,8 @@ import logging
 from typing import Dict
 
 from langgraph_flow.models.assistant_state import AssistantState
+from langgraph_flow.models.openai_model import OpenAIModel
 from utils.agent_utils import (
-    OpenAIModel,
     get_agent_prompt_template,
     get_question_and_config_from_state,
     get_relevant_code_context_chunks_from_vectorstore,
@@ -49,4 +49,4 @@ def navigate_code(state: AssistantState) -> Dict:
         }
 
     logger.info("Generated navigation summary successfully")
-    return {**state, KEY_RESPONSE: navigation}
+    return {**state.dict(), KEY_RESPONSE: navigation}

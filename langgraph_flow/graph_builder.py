@@ -1,17 +1,19 @@
 import logging
-from langgraph.graph import StateGraph, END
-from .agents.intent_classifier import classify_intent
-from .agents.retriever_agent import retrieve_code
+
+from langgraph.graph import END, StateGraph
+
 from .agents.explainer_agent import explain_code
+from .agents.intent_classifier import classify_intent
 from .agents.navigator_agent import navigate_code
+from .agents.retriever_agent import retrieve_code
 from .models.assistant_state import AssistantState
 
 logger = logging.getLogger(__name__)
 
 
 # Routing based on the classified intent
-def _route(state):
-    intent = state["intent"]  # TODO - change the states to enums
+def _route(state: AssistantState):
+    intent = state.intent
     logger.debug("Routing intent '%s'", intent)
     if intent == "retrieve":
         return "retrieve"
@@ -37,14 +39,14 @@ def build_graph():
     graph = StateGraph(state_schema=AssistantState)
 
     # Add processing nodes
-    graph.add_node("intent", classify_intent)
+    graph.add_node("classify", classify_intent)
     graph.add_node("retrieve", retrieve_code)
     graph.add_node("explain", explain_code)
     graph.add_node("navigate", navigate_code)
 
     # Entry point: classify user intent first
-    graph.set_entry_point("intent")
-    graph.add_conditional_edges("intent", _route)
+    graph.set_entry_point("classify")
+    graph.add_conditional_edges("classify", _route)
 
     # Mark terminal nodes
     graph.add_edge("retrieve", END)
