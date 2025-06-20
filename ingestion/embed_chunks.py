@@ -4,6 +4,19 @@ import pickle
 from langchain.embeddings import OpenAIEmbeddings
 from langchain.vectorstores import Chroma, FAISS
 
+from utils.constants import (
+    ENV_OPENAIAPI_KEY,
+    KEY_CHROMA,
+    KEY_CONTENT,
+    KEY_EMBEDDING_MODEL,
+    KEY_FAISS,
+    KEY_META,
+    KEY_OPENAI,
+    KEY_PERSIST_DIRECTORY,
+    KEY_TYPE,
+    KEY_VECTORSTORE,
+)
+
 logger = logging.getLogger(__name__)
 
 
@@ -22,8 +35,8 @@ def embed_documents(docs: list, cfg: dict):
         RuntimeError: On any failure during embedding or persistence.
     """
     try:
-        model_name = cfg["openai"]["embedding_model"]
-        openai_api_key = os.getenv("OPENAPI_KEY")
+        model_name = cfg[KEY_OPENAI][KEY_EMBEDDING_MODEL]
+        openai_api_key = os.getenv(ENV_OPENAIAPI_KEY)
         logger.info(
             "Initializing OpenAI embeddings with model '%s'", model_name
         )
@@ -31,15 +44,15 @@ def embed_documents(docs: list, cfg: dict):
             model=model_name, openai_api_key=openai_api_key
         )
 
-        store_type = cfg["vectorstore"]["type"].lower()
-        persist_dir = cfg["vectorstore"]["persist_directory"]
+        store_type = cfg[KEY_VECTORSTORE][KEY_TYPE].lower()
+        persist_dir = cfg[KEY_VECTORSTORE][KEY_PERSIST_DIRECTORY]
         os.makedirs(persist_dir, exist_ok=True)
 
-        texts = [doc["content"] for doc in docs]
-        metadatas = [doc["meta"] for doc in docs]
+        texts = [doc[KEY_CONTENT] for doc in docs]
+        metadatas = [doc[KEY_META] for doc in docs]
         logger.info("Embedding %d documents", len(texts))
 
-        if store_type == "chroma":
+        if store_type == KEY_CHROMA:
             logger.info("Creating Chroma vectorstore at '%s'", persist_dir)
             store = Chroma.from_texts(
                 texts=texts,
@@ -50,7 +63,7 @@ def embed_documents(docs: list, cfg: dict):
             store.persist()
             logger.debug("Chroma vectorstore persisted")
 
-        elif store_type == "faiss":
+        elif store_type == KEY_FAISS:
             logger.info("Creating FAISS vectorstore in '%s'", persist_dir)
             store = FAISS.from_texts(
                 texts=texts, embedding=embeddings, metadatas=metadatas

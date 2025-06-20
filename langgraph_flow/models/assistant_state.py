@@ -1,13 +1,18 @@
-from pydantic import BaseModel
-from typing import Any, Dict
+from pydantic import BaseModel, Extra
+from typing import Any, Dict, Optional
 
 
 class AssistantState(BaseModel):
     """
     State schema for the Codebase Assistant LangGraph flow.
+    Only declares the inputs and the final output.
+    Intermediate keys (intent, etc.) are allowed via extra=allow.
     """
 
-    question: str  # incoming user query
-    cfg: Dict[str, Any]  # full config passed into each run
-    intent: str  # set by intent_classifier
-    response: str  # set by the terminal agents
+    question: str
+    cfg: Dict[str, Any]
+    response: Optional[str] = None
+
+    class Config:
+        # Permit intermediate keys like "intent" without error
+        extra = Extra.allow

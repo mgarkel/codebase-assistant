@@ -6,6 +6,22 @@ from langchain.chat_models import ChatOpenAI
 from langchain.schema import Document
 
 from ingestion.load_vectorstore import load_vectorstore
+from utils.constants import (
+    DEFAULT_TOP_K_NAVIGATOR,
+    ENV_OPENAIAPI_KEY,
+    KEY_CHUNK,
+    KEY_CONFIG,
+    KEY_CONFIG_NAVIGATOR,
+    KEY_CONFIG_TOP_K,
+    KEY_INFERENCE_MODEL,
+    KEY_OPENAI,
+    KEY_QUESTION,
+    KEY_RESPONSE,
+    KEY_SOURCE,
+    KEY_UNKNOWN,
+    MODEL_INFERENCE_OPEN_AI,
+    VALUES_UTF_8,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -21,8 +37,8 @@ def navigate_code(state: Dict) -> Dict:
     Returns updated state with:
       - "response": str   # navigation summary or trace steps
     """
-    question = state.get("question", "").strip()
-    cfg = state.get("cfg", {})
+    question = state.get(KEY_QUESTION, "").strip()
+    cfg = state.get(KEY_CONFIG, {})
 
     # Load vectorstore
     try:
@@ -34,7 +50,9 @@ def navigate_code(state: Dict) -> Dict:
         return {**state, "response": "Error: could not access the code index."}
 
     # Determine how many snippets to consider for navigation
-    top_k = cfg.get("navigator", {}).get("top_k", 5)
+    top_k = cfg.get(KEY_CONFIG_NAVIGATOR, {}).get(
+        KEY_CONFIG_TOP_K, DEFAULT_TOP_K_NAVIGATOR
+    )
 
     # Perform similarity search to find relevant code contexts
     try:
@@ -58,14 +76,13 @@ def navigate_code(state: Dict) -> Dict:
             "response": "I couldn't find any relevant code to navigate.",
         }
 
-    # Combine snippets with metadata
     combined = []
     for doc in docs:
         meta = doc.metadata or {}
-        src = meta.get("source", "unknown")
-        idx = meta.get("chunk", "?")
+        src = meta.get(KEY_SOURCE, KEY_UNKNOWN)
+        idx = meta.get(KEY_CHUNK, "?")
         snippet = doc.page_content.strip()
-        combined.append(f"# Source: {src} (chunk {idx})\n{snippet}")
+        combined.append(f"# {KEY_SOURCE}: {src} ({KEY_CHUNK} {idx})\n{snippet}")
 
     code_context = "\n\n".join(combined)
 
@@ -73,14 +90,16 @@ def navigate_code(state: Dict) -> Dict:
     tmpl_path = os.path.join(
         os.path.dirname(__file__), "..", "prompts", "navigation_prompt.txt"
     )
-    with open(tmpl_path, "r", encoding="utf-8") as f:
+    with open(tmpl_path, "r", encoding=VALUES_UTF_8) as f:
         template = f.read()
 
     prompt = template.format(question=question, code=code_context)
 
     # Initialize LLM
-    model_name = cfg.get("openai", {}).get("inference_model", "gpt-4")
-    openai_api_key = os.getenv("OPENAPI_KEY")
+    model_name = cfg.get(KEY_OPENAI, {}).get(
+        KEY_INFERENCE_MODEL, MODEL_INFERENCE_OPEN_AI
+    )
+    openai_api_key = os.getenv(ENV_OPENAIAPI_KEY)
     llm = ChatOpenAI(
         model=model_name, temperature=0, openai_api_key=openai_api_key
     )
@@ -93,8 +112,8 @@ def navigate_code(state: Dict) -> Dict:
         logger.error("LLM navigation generation failed: %s", e, exc_info=True)
         return {
             **state,
-            "response": "Error: failed to generate navigation summary.",
+            KEY_RESPONSE: "Error: failed to generate navigation summary.",
         }
 
     logger.info("Generated navigation summary successfully")
-    return {**state, "response": navigation}
+    return {**state, KEY_RESPONSE: navigation}

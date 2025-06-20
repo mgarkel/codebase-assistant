@@ -7,18 +7,29 @@ from ingestion.ingest_repo import clone_repo
 from ingestion.chunk_code import chunk_repository
 from ingestion.embed_chunks import embed_documents
 from langgraph_flow.graph_builder import build_graph
+from utils.constants import (
+    KEY_CONFIG,
+    KEY_EXIT,
+    KEY_INFO,
+    KEY_LOCAL_PATH,
+    KEY_QUESTION,
+    KEY_QUIT,
+    KEY_REPO,
+    KEY_URL,
+    LOG_FORMAT_STYLE,
+)
 
 logger = logging.getLogger(__name__)
 
 
-def setup_logging(level: str = "INFO", log_file: str = None):
+def setup_logging(level: str = KEY_INFO, log_file: str = None):
     """
     Configure the root logger with a console handler and optional file handler.
     """
     root = logging.getLogger()
     root.setLevel(level.upper())
 
-    fmt = logging.Formatter("%(asctime)s [%(levelname)s] %(name)s: %(message)s")
+    fmt = logging.Formatter(LOG_FORMAT_STYLE)
 
     # Console handler
     ch = logging.StreamHandler(sys.stdout)
@@ -53,8 +64,8 @@ def ingest_flow(cfg: dict):
       3. Embed chunks into the vector store
     """
     logger.info("🔄 Starting ingestion pipeline")
-    clone_repo(cfg["repo"]["url"], cfg["repo"]["local_path"])
-    docs = chunk_repository(cfg["repo"]["local_path"])
+    clone_repo(cfg[("%s" % KEY_REPO)][KEY_URL], cfg[KEY_REPO][KEY_LOCAL_PATH])
+    docs = chunk_repository(cfg[KEY_REPO][KEY_LOCAL_PATH])
     embed_documents(docs, cfg)
     logger.info("✅ Ingestion pipeline completed")
 
@@ -68,18 +79,20 @@ def chat_flow(cfg: dict):
     """
     logger.info("🔧 Building LangGraph flow")
     graph = build_graph()
-    logger.info("💬 Entering interactive chat (type 'exit' or 'quit' to stop)")
+    logger.info(
+        f"💬 Entering interactive chat (type {KEY_EXIT} or {KEY_QUIT} to stop)"
+    )
 
     try:
         while True:
             question = input("\n❓ Ask your codebase: ").strip()
-            if question.lower() in ("exit", "quit"):
+            if question.lower() in (KEY_EXIT, KEY_QUIT):
                 logging.info("👋 Exiting chat loop")
                 break
 
             try:
                 # Pass both the question and the full config into the graph state
-                state = graph.invoke({"question": question, "cfg": cfg})
+                state = graph.invoke({KEY_QUESTION: question, KEY_CONFIG: cfg})
                 response = state.get("response", "No answer available.")
                 logger.info(f"\n💡 {response}\n")
             except Exception:

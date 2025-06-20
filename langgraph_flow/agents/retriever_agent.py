@@ -4,6 +4,17 @@ from typing import List, Dict
 from langchain.schema import Document
 
 from ingestion.load_vectorstore import load_vectorstore
+from utils.constants import (
+    DEFAULT_TOK_K_RETRIEVER,
+    KEY_CHUNK,
+    KEY_CONFIG,
+    KEY_CONFIG_RETRIEVER,
+    KEY_CONFIG_TOP_K,
+    KEY_QUESTION,
+    KEY_RESPONSE,
+    KEY_SOURCE,
+    KEY_UNKNOWN,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -19,9 +30,11 @@ def retrieve_code(state: Dict) -> Dict:
     Returns updated state with:
       - "response": str   # formatted top results
     """
-    question = state.get("question", "").strip()
-    cfg = state.get("cfg", {})
-    top_k = cfg.get("retriever", {}).get("top_k", 5)
+    question = state.get(KEY_QUESTION, "").strip()
+    cfg = state.get(KEY_CONFIG, {})
+    top_k = cfg.get(KEY_CONFIG_RETRIEVER, {}).get(
+        KEY_CONFIG_TOP_K, DEFAULT_TOK_K_RETRIEVER
+    )
 
     try:
         store = load_vectorstore(cfg)
@@ -40,8 +53,8 @@ def retrieve_code(state: Dict) -> Dict:
             pieces = []
             for doc in docs:
                 meta = doc.metadata or {}
-                src = meta.get("source", "unknown")
-                idx = meta.get("chunk", "?")
+                src = meta.get(KEY_SOURCE, KEY_UNKNOWN)
+                idx = meta.get(KEY_CHUNK, "?")
                 snippet = doc.page_content.strip()
                 pieces.append(
                     f"---\n**{src} (chunk {idx})**\n\n```\n{snippet}\n```"
@@ -52,11 +65,11 @@ def retrieve_code(state: Dict) -> Dict:
                 + "\n\n".join(pieces)
             )
 
-        return {**state, "response": response}
+        return {**state, KEY_RESPONSE: response}
 
     except Exception as e:
         logger.error("Error during code retrieval: %s", e, exc_info=True)
         return {
             **state,
-            "response": "Sorry, I ran into an error while searching the codebase.",
+            KEY_RESPONSE: "Sorry, I ran into an error while searching the codebase.",
         }

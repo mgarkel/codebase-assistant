@@ -3,6 +3,14 @@ import logging
 from typing import List, Dict
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 
+from utils.constants import (
+    KEY_CHUNK,
+    KEY_CONTENT,
+    KEY_META,
+    KEY_SOURCE,
+    VALUES_UTF_8,
+)
+
 logger = logging.getLogger(__name__)
 
 
@@ -58,7 +66,7 @@ def chunk_repository(
             total_files += 1
             file_path = os.path.join(root, fname)
             try:
-                with open(file_path, "r", encoding="utf-8") as f:
+                with open(file_path, "r", encoding=VALUES_UTF_8) as f:
                     text = f.read()
                 if not text.strip():
                     logger.warning("Skipping empty file: %s", file_path)
@@ -68,8 +76,8 @@ def chunk_repository(
                 for idx, chunk in enumerate(chunks):
                     documents.append(
                         {
-                            "content": chunk,
-                            "meta": {"source": file_path, "chunk": idx},
+                            KEY_CONTENT: chunk,
+                            KEY_META: {KEY_SOURCE: file_path, KEY_CHUNK: idx},
                         }
                     )
 

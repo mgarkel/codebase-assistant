@@ -23,7 +23,7 @@ def _route(state):
     return "retrieve"
 
 
-def build_graph(cfg: dict):
+def build_graph():
     """
     Build and compile the LangGraph StateGraph for the Codebase Assistant.
 
