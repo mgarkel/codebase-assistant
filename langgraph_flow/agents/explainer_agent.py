@@ -9,6 +9,7 @@ from ingestion.load_vectorstore import load_vectorstore
 
 logger = logging.getLogger(__name__)
 
+
 def explain_code(state: Dict) -> Dict:
     """
     Retrieve top-k relevant code snippets and generate a natural-language explanation.
@@ -27,7 +28,9 @@ def explain_code(state: Dict) -> Dict:
     try:
         store = load_vectorstore(cfg)
     except Exception as e:
-        logger.error("Failed to load vectorstore for explanation: %s", e, exc_info=True)
+        logger.error(
+            "Failed to load vectorstore for explanation: %s", e, exc_info=True
+        )
         return {**state, "response": "Error: could not access the code index."}
 
     # Determine how many snippets to explain
@@ -35,15 +38,25 @@ def explain_code(state: Dict) -> Dict:
 
     # Perform similarity search
     try:
-        logger.info("Retrieving top %d snippets for explanation of: %s", top_k, question)
+        logger.info(
+            "Retrieving top %d snippets for explanation of: %s", top_k, question
+        )
         docs: List[Document] = store.similarity_search(question, k=top_k)
     except Exception as e:
-        logger.error("Similarity search failed in explainer_agent: %s", e, exc_info=True)
-        return {**state, "response": "Error: failed to retrieve code snippets for explanation."}
+        logger.error(
+            "Similarity search failed in explainer_agent: %s", e, exc_info=True
+        )
+        return {
+            **state,
+            "response": "Error: failed to retrieve code snippets for explanation.",
+        }
 
     if not docs:
         logger.warning("No snippets found for explanation query: %s", question)
-        return {**state, "response": "I couldn't find any relevant code to explain."}
+        return {
+            **state,
+            "response": "I couldn't find any relevant code to explain.",
+        }
 
     # Concatenate snippets with source info
     combined = []
@@ -57,7 +70,9 @@ def explain_code(state: Dict) -> Dict:
     code_context = "\n\n".join(combined)
 
     # Load prompt template
-    tmpl_path = os.path.join(os.path.dirname(__file__), "..", "prompts", "explanation_prompt.txt")
+    tmpl_path = os.path.join(
+        os.path.dirname(__file__), "..", "prompts", "explanation_prompt.txt"
+    )
     with open(tmpl_path, "r", encoding="utf-8") as f:
         template = f.read()
 
@@ -66,7 +81,9 @@ def explain_code(state: Dict) -> Dict:
     # Initialize LLM
     model_name = cfg.get("openai", {}).get("inference_model", "gpt-4")
     openai_api_key = os.getenv("OPENAPI_KEY")
-    llm = ChatOpenAI(model = model_name, temperature = 0, openai_api_key = openai_api_key)
+    llm = ChatOpenAI(
+        model=model_name, temperature=0, openai_api_key=openai_api_key
+    )
 
     # Generate explanation
     try:

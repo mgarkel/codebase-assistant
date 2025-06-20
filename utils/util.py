@@ -10,6 +10,7 @@ from langgraph_flow.graph_builder import build_graph
 
 logger = logging.getLogger(__name__)
 
+
 def setup_logging(level: str = "INFO", log_file: str = None):
     """
     Configure the root logger with a console handler and optional file handler.

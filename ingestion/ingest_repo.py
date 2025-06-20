@@ -28,13 +28,17 @@ def clone_repo(repo_url: str, dest: str = "repo/") -> Repo:
             # If dest exists, verify it's a Git repo
             try:
                 repo = Repo(dest)
-                logger.info(f"Repository already exists at '{dest}', fetching updates")
+                logger.info(
+                    f"Repository already exists at '{dest}', fetching updates"
+                )
                 origin = repo.remotes.origin
                 origin.fetch()
                 origin.pull()
                 logger.debug(f"Successfully updated repository at '{dest}'")
             except InvalidGitRepositoryError:
-                msg = f"Destination '{dest}' exists but is not a Git repository."
+                msg = (
+                    f"Destination '{dest}' exists but is not a Git repository."
+                )
                 logger.error(msg)
                 raise RuntimeError(msg)
         return repo

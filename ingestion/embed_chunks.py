@@ -6,6 +6,7 @@ from langchain.vectorstores import Chroma, FAISS
 
 logger = logging.getLogger(__name__)
 
+
 def embed_documents(docs: list, cfg: dict):
     """
     Embed documents using OpenAI embeddings and store into the configured vector store.
@@ -23,8 +24,12 @@ def embed_documents(docs: list, cfg: dict):
     try:
         model_name = cfg["openai"]["embedding_model"]
         openai_api_key = os.getenv("OPENAPI_KEY")
-        logger.info("Initializing OpenAI embeddings with model '%s'", model_name)
-        embeddings = OpenAIEmbeddings(model=model_name, openai_api_key = openai_api_key)
+        logger.info(
+            "Initializing OpenAI embeddings with model '%s'", model_name
+        )
+        embeddings = OpenAIEmbeddings(
+            model=model_name, openai_api_key=openai_api_key
+        )
 
         store_type = cfg["vectorstore"]["type"].lower()
         persist_dir = cfg["vectorstore"]["persist_directory"]
@@ -37,20 +42,18 @@ def embed_documents(docs: list, cfg: dict):
         if store_type == "chroma":
             logger.info("Creating Chroma vectorstore at '%s'", persist_dir)
             store = Chroma.from_texts(
-                    texts=texts,
-                    embedding=embeddings,
-                    metadatas=metadatas,
-                    persist_directory=persist_dir
-                )
+                texts=texts,
+                embedding=embeddings,
+                metadatas=metadatas,
+                persist_directory=persist_dir,
+            )
             store.persist()
             logger.debug("Chroma vectorstore persisted")
 
         elif store_type == "faiss":
             logger.info("Creating FAISS vectorstore in '%s'", persist_dir)
             store = FAISS.from_texts(
-                texts=texts,
-                embedding=embeddings,
-                metadatas=metadatas
+                texts=texts, embedding=embeddings, metadatas=metadatas
             )
             # Persist FAISS index and metadata
             index_path = os.path.join(persist_dir, "faiss_index")

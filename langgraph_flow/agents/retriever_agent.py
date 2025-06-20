@@ -25,7 +25,11 @@ def retrieve_code(state: Dict) -> Dict:
 
     try:
         store = load_vectorstore(cfg)
-        logger.info("Performing similarity search (k=%d) for question: %s", top_k, question)
+        logger.info(
+            "Performing similarity search (k=%d) for question: %s",
+            top_k,
+            question,
+        )
         docs: List[Document] = store.similarity_search(question, k=top_k)
 
         if not docs:
@@ -39,7 +43,9 @@ def retrieve_code(state: Dict) -> Dict:
                 src = meta.get("source", "unknown")
                 idx = meta.get("chunk", "?")
                 snippet = doc.page_content.strip()
-                pieces.append(f"---\n**{src} (chunk {idx})**\n\n```\n{snippet}\n```")
+                pieces.append(
+                    f"---\n**{src} (chunk {idx})**\n\n```\n{snippet}\n```"
+                )
 
             response = (
                 f"Here are the top {len(docs)} relevant code snippets:\n\n"
@@ -50,4 +56,7 @@ def retrieve_code(state: Dict) -> Dict:
 
     except Exception as e:
         logger.error("Error during code retrieval: %s", e, exc_info=True)
-        return {**state, "response": "Sorry, I ran into an error while searching the codebase."}
+        return {
+            **state,
+            "response": "Sorry, I ran into an error while searching the codebase.",
+        }

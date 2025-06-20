@@ -10,7 +10,7 @@ def chunk_repository(
     repo_path: str,
     extensions: List[str] = None,
     chunk_size: int = 1000,
-    chunk_overlap: int = 200
+    chunk_overlap: int = 200,
 ) -> List[Dict]:
     """
     Walk through the repository directory and split eligible files into text chunks.
@@ -41,11 +41,10 @@ def chunk_repository(
         raise RuntimeError(msg)
 
     if extensions is None:
-        extensions = ['.py', '.js', '.java', '.ts', '.md']
+        extensions = [".py", ".js", ".java", ".ts", ".md"]
 
     splitter = RecursiveCharacterTextSplitter(
-        chunk_size=chunk_size,
-        chunk_overlap=chunk_overlap
+        chunk_size=chunk_size, chunk_overlap=chunk_overlap
     )
 
     documents: List[Dict] = []
@@ -59,7 +58,7 @@ def chunk_repository(
             total_files += 1
             file_path = os.path.join(root, fname)
             try:
-                with open(file_path, 'r', encoding='utf-8') as f:
+                with open(file_path, "r", encoding="utf-8") as f:
                     text = f.read()
                 if not text.strip():
                     logger.warning("Skipping empty file: %s", file_path)
@@ -67,31 +66,37 @@ def chunk_repository(
 
                 chunks = splitter.split_text(text)
                 for idx, chunk in enumerate(chunks):
-                    documents.append({
-                        "content": chunk,
-                        "meta": {
-                            "source": file_path,
-                            "chunk": idx
+                    documents.append(
+                        {
+                            "content": chunk,
+                            "meta": {"source": file_path, "chunk": idx},
                         }
-                    })
+                    )
 
                 total_chunks += len(chunks)
-                logger.debug("Chunked '%s' into %d pieces", file_path, len(chunks))
+                logger.debug(
+                    "Chunked '%s' into %d pieces", file_path, len(chunks)
+                )
 
             except Exception as e:
                 logger.error(
-                    "Error processing file '%s': %s", file_path, e, exc_info=True
+                    "Error processing file '%s': %s",
+                    file_path,
+                    e,
+                    exc_info=True,
                 )
 
     if total_files == 0:
         logger.warning(
-            "No files found in '%s' matching extensions %s", repo_path, extensions
+            "No files found in '%s' matching extensions %s",
+            repo_path,
+            extensions,
         )
 
     logger.info(
         "Completed chunking: %d files processed into %d chunks",
         total_files,
-        total_chunks
+        total_chunks,
     )
 
     return documents

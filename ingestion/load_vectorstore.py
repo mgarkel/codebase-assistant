@@ -18,27 +18,29 @@ def load_vectorstore(cfg: Dict):
 
     store_cfg = cfg.get("vectorstore", {})
     store_type = store_cfg.get("type", "chroma").lower()
-    persist_dir = store_cfg.get("persist_directory", "vectorstore/chroma_index/")
+    persist_dir = store_cfg.get(
+        "persist_directory", "vectorstore/chroma_index/"
+    )
     os.makedirs(persist_dir, exist_ok=True)
 
     model_name = cfg["openai"]["embedding_model"]
     openai_api_key = os.getenv("OPENAPI_KEY")
     logger.info("Using embedding model: %s", model_name)
-    embeddings = OpenAIEmbeddings(model = model_name, openai_api_key=openai_api_key)
+    embeddings = OpenAIEmbeddings(
+        model=model_name, openai_api_key=openai_api_key
+    )
 
     try:
         if store_type == "chroma":
             logger.info("Loading Chroma vectorstore from '%s'", persist_dir)
             _VECTORSTORE = Chroma(
-                persist_directory=persist_dir,
-                embedding_function=embeddings
+                persist_directory=persist_dir, embedding_function=embeddings
             )
         elif store_type == "faiss":
             index_path = os.path.join(persist_dir, "faiss_index")
             logger.info("Loading FAISS vectorstore from '%s'", index_path)
             _VECTORSTORE = FAISS.load_local(
-                folder_path=index_path,
-                embedding=embeddings
+                folder_path=index_path, embedding=embeddings
             )
         else:
             msg = f"Unsupported vectorstore type: '{store_type}'"

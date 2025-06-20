@@ -5,6 +5,7 @@ from langchain.chat_models import ChatOpenAI
 
 logger = logging.getLogger(__name__)
 
+
 def classify_intent(state: dict) -> dict:
     """
     Analyze the user’s question and classify it into one of:
@@ -19,10 +20,14 @@ def classify_intent(state: dict) -> dict:
     model_name = cfg.get("openai", {}).get("inference_model", "gpt-4")
     openai_api_key = os.getenv("OPENAPI_KEY")
 
-    llm = ChatOpenAI(model=model_name, temperature=0, openai_api_key=openai_api_key)
+    llm = ChatOpenAI(
+        model=model_name, temperature=0, openai_api_key=openai_api_key
+    )
 
     # Load navigation prompt template
-    tmpl_path = os.path.join(os.path.dirname(__file__), "..", "prompts", "intent_prompt.txt")
+    tmpl_path = os.path.join(
+        os.path.dirname(__file__), "..", "prompts", "intent_prompt.txt"
+    )
     with open(tmpl_path, "r", encoding="utf-8") as f:
         template = f.read()
     prompt = template.format(question=question)
@@ -31,7 +36,9 @@ def classify_intent(state: dict) -> dict:
     try:
         raw = llm.predict(prompt).strip().lower()
         if raw not in {"retrieve", "explain", "navigate"}:
-            logger.warning("Unexpected intent '%s'; defaulting to 'retrieve'", raw)
+            logger.warning(
+                "Unexpected intent '%s'; defaulting to 'retrieve'", raw
+            )
             raw = "retrieve"
         intent = raw
     except Exception as e:
