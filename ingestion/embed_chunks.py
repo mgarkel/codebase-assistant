@@ -1,17 +1,14 @@
-import os
 import logging
-import pickle
-from langchain.embeddings import OpenAIEmbeddings
-from langchain.vectorstores import Chroma, FAISS
+import os
 
+from langchain.vectorstores import FAISS, Chroma
+
+from langgraph_flow.models.openai_model import OpenAIModel
 from utils.constants import (
-    ENV_OPENAIAPI_KEY,
     KEY_CHROMA,
     KEY_CONTENT,
-    KEY_EMBEDDING_MODEL,
     KEY_FAISS,
     KEY_META,
-    KEY_OPENAI,
     KEY_PERSIST_DIRECTORY,
     KEY_TYPE,
     KEY_VECTORSTORE,
@@ -35,15 +32,7 @@ def embed_documents(docs: list, cfg: dict):
         RuntimeError: On any failure during embedding or persistence.
     """
     try:
-        model_name = cfg[KEY_OPENAI][KEY_EMBEDDING_MODEL]
-        openai_api_key = os.getenv(ENV_OPENAIAPI_KEY)
-        logger.info(
-            "Initializing OpenAI embeddings with model '%s'", model_name
-        )
-        embeddings = OpenAIEmbeddings(
-            model=model_name, openai_api_key=openai_api_key
-        )
-
+        embeddings = OpenAIModel(cfg).embedding_model
         store_type = cfg[KEY_VECTORSTORE][KEY_TYPE].lower()
         persist_dir = cfg[KEY_VECTORSTORE][KEY_PERSIST_DIRECTORY]
         os.makedirs(persist_dir, exist_ok=True)
