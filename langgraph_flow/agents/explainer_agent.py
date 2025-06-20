@@ -1,6 +1,6 @@
-import os
 import logging
-from typing import List, Dict
+import os
+from typing import Dict, List
 
 from langchain.chat_models import ChatOpenAI
 from langchain.schema import Document
@@ -9,8 +9,10 @@ from ingestion.load_vectorstore import load_vectorstore
 from langgraph_flow.models.assistant_state import AssistantState
 from utils.agent_utils import (
     OpenAIModel,
+    get_agent_prompt_template,
     get_combined_text_from_docs,
     get_question_and_config_from_state,
+    get_relevant_code_context_chunks_from_vectorstore,
 )
 from utils.constants import (
     DEFAULT_TOP_K_EXPLAINER,
@@ -30,6 +32,7 @@ from utils.constants import (
 )
 
 logger = logging.getLogger(__name__)
+EXPLAINER_PROMPT_TEMPLATE = "explanation_prompt.txt"
 
 
 def explain_code(state: AssistantState) -> Dict:
@@ -44,56 +47,10 @@ def explain_code(state: AssistantState) -> Dict:
       - "response": str  # explanation text
     """
     question, cfg = get_question_and_config_from_state(state)
-
-    # Load vectorstore
-    try:
-        store = load_vectorstore(cfg)
-    except Exception as e:
-        logger.error(
-            "Failed to load vectorstore for explanation: %s", e, exc_info=True
-        )
-        return {
-            **state,
-            KEY_RESPONSE: "Error: could not access the code index.",
-        }
-
-    # Determine how many snippets to explain
-    top_k = cfg.get(KEY_CONFIG_EXPLAINER, {}).get(
-        KEY_CONFIG_TOP_K, DEFAULT_TOP_K_EXPLAINER
+    code_context = get_relevant_code_context_chunks_from_vectorstore(
+        cfg, question, KEY_CONFIG_EXPLAINER, DEFAULT_TOP_K_EXPLAINER
     )
-
-    # Perform similarity search
-    try:
-        logger.info(
-            "Retrieving top %d snippets for explanation of: %s", top_k, question
-        )
-        docs: List[Document] = store.similarity_search(question, k=top_k)
-    except Exception as e:
-        logger.error(
-            "Similarity search failed in explainer_agent: %s", e, exc_info=True
-        )
-        return {
-            **state,
-            KEY_RESPONSE: "Error: failed to retrieve code snippets for explanation.",
-        }
-
-    if not docs:
-        logger.warning("No snippets found for explanation query: %s", question)
-        return {
-            **state,
-            KEY_RESPONSE: "I couldn't find any relevant code to explain.",
-        }
-
-    code_context = get_combined_text_from_docs(docs)
-
-    # Load prompt template
-    tmpl_path = os.path.join(
-        os.path.dirname(__file__), "..", "prompts", "explanation_prompt.txt"
-    )
-    # TODO Extract this prompt into a utility function that can be used to grab all prompts
-    with open(tmpl_path, "r", encoding=VALUES_UTF_8) as f:
-        template = f.read()
-
+    template = get_agent_prompt_template(EXPLAINER_PROMPT_TEMPLATE)
     prompt = template.format(code=code_context)
 
     # Initialize LLM

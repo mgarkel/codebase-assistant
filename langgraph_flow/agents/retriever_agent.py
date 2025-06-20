@@ -1,5 +1,5 @@
 import logging
-from typing import List, Dict
+from typing import Dict, List
 
 from langchain.schema import Document
 
@@ -8,6 +8,7 @@ from langgraph_flow.models.assistant_state import AssistantState
 from utils.agent_utils import (
     get_combined_text_from_docs,
     get_question_and_config_from_state,
+    get_relevant_code_context_chunks_from_vectorstore,
 )
 from utils.constants import (
     DEFAULT_TOK_K_RETRIEVER,
@@ -36,29 +37,11 @@ def retrieve_code(state: AssistantState) -> Dict:
       - "response": str   # formatted top results
     """
     question, cfg = get_question_and_config_from_state(state)
-    top_k = cfg.get(KEY_CONFIG_RETRIEVER, {}).get(
-        KEY_CONFIG_TOP_K, DEFAULT_TOK_K_RETRIEVER
-    )
-
     try:
-        store = load_vectorstore(cfg)
-        logger.info(
-            "Performing similarity search (k=%d) for question: %s",
-            top_k,
-            question,
+        code_context = get_relevant_code_context_chunks_from_vectorstore(
+            cfg, question, KEY_CONFIG_RETRIEVER, DEFAULT_TOK_K_RETRIEVER
         )
-        docs: List[Document] = store.similarity_search(question, k=top_k)
-
-        if not docs:
-            logger.warning("No documents found for query: %s", question)
-            response = "I couldn't find any relevant code snippets."
-        else:
-            code_context = get_combined_text_from_docs(docs)
-            response = (
-                f"Here are the top {len(docs)} relevant code snippets:\n\n"
-                + code_context
-            )
-
+        response = f"Here are the relevant code snippets:\n\n" + code_context
         return {**state, KEY_RESPONSE: response}
 
     except Exception as e:

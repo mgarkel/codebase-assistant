@@ -4,7 +4,11 @@ import os
 from langchain.chat_models import ChatOpenAI
 
 from langgraph_flow.models.assistant_state import AssistantState
-from utils.agent_utils import OpenAIModel, get_question_and_config_from_state
+from utils.agent_utils import (
+    OpenAIModel,
+    get_agent_prompt_template,
+    get_question_and_config_from_state,
+)
 from utils.constants import (
     ENV_OPENAIAPI_KEY,
     KEY_CONFIG,
@@ -17,6 +21,7 @@ from utils.constants import (
 )
 
 logger = logging.getLogger(__name__)
+INTENT_PROMPT_TEMPLATE = "intent_prompt.txt"
 
 
 def classify_intent(state: AssistantState) -> dict:
@@ -30,13 +35,7 @@ def classify_intent(state: AssistantState) -> dict:
     """
     question, cfg = get_question_and_config_from_state(state)
     llm = OpenAIModel(cfg).inference_model
-
-    # Load navigation prompt template
-    tmpl_path = os.path.join(
-        os.path.dirname(__file__), "..", "prompts", "intent_prompt.txt"
-    )
-    with open(tmpl_path, "r", encoding=VALUES_UTF_8) as f:
-        template = f.read()
+    template = get_agent_prompt_template(INTENT_PROMPT_TEMPLATE)
     prompt = template.format(question=question)
 
     logger.debug("Dispatching intent-classification prompt to LLM")
