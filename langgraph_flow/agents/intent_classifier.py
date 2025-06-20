@@ -3,6 +3,8 @@ import os
 
 from langchain.chat_models import ChatOpenAI
 
+from langgraph_flow.models.assistant_state import AssistantState
+from utils.agent_utils import OpenAIModel, get_question_and_config_from_state
 from utils.constants import (
     ENV_OPENAIAPI_KEY,
     KEY_CONFIG,
@@ -17,7 +19,7 @@ from utils.constants import (
 logger = logging.getLogger(__name__)
 
 
-def classify_intent(state: dict) -> dict:
+def classify_intent(state: AssistantState) -> dict:
     """
     Analyze the user’s question and classify it into one of:
       - 'retrieve' (fetch relevant code snippets)
@@ -26,16 +28,8 @@ def classify_intent(state: dict) -> dict:
 
     Adds 'intent' to the state for downstream routing.
     """
-    question = state.get(KEY_QUESTION, "").strip()
-    cfg = state.get(KEY_CONFIG, {})
-    model_name = cfg.get(KEY_OPENAI, {}).get(
-        KEY_INFERENCE_MODEL, MODEL_INFERENCE_OPEN_AI
-    )
-    openai_api_key = os.getenv(ENV_OPENAIAPI_KEY)
-    # TODO - Create a class/util function for this model that can be re-used in each agent.
-    llm = ChatOpenAI(
-        model=model_name, temperature=0, openai_api_key=openai_api_key
-    )
+    question, cfg = get_question_and_config_from_state(state)
+    llm = OpenAIModel(cfg).inference_model
 
     # Load navigation prompt template
     tmpl_path = os.path.join(
@@ -60,4 +54,4 @@ def classify_intent(state: dict) -> dict:
         intent = "retrieve"
 
     logger.info("Intent classified as '%s'", intent)
-    return {**state, KEY_INTENT: intent}
+    return {**state.dict(), KEY_INTENT: intent}

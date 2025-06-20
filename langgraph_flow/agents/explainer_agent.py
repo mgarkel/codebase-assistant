@@ -6,6 +6,12 @@ from langchain.chat_models import ChatOpenAI
 from langchain.schema import Document
 
 from ingestion.load_vectorstore import load_vectorstore
+from langgraph_flow.models.assistant_state import AssistantState
+from utils.agent_utils import (
+    OpenAIModel,
+    get_combined_text_from_docs,
+    get_question_and_config_from_state,
+)
 from utils.constants import (
     DEFAULT_TOP_K_EXPLAINER,
     ENV_OPENAIAPI_KEY,
@@ -26,7 +32,7 @@ from utils.constants import (
 logger = logging.getLogger(__name__)
 
 
-def explain_code(state: Dict) -> Dict:
+def explain_code(state: AssistantState) -> Dict:
     """
     Retrieve top-k relevant code snippets and generate a natural-language explanation.
 
@@ -37,9 +43,7 @@ def explain_code(state: Dict) -> Dict:
     Returns updated state with:
       - "response": str  # explanation text
     """
-    # TODO - add a utility function to get question and cfg from state for every agent
-    question = state.get(KEY_QUESTION, "").strip()
-    cfg = state.get(KEY_CONFIG, {})
+    question, cfg = get_question_and_config_from_state(state)
 
     # Load vectorstore
     try:
@@ -80,16 +84,7 @@ def explain_code(state: Dict) -> Dict:
             KEY_RESPONSE: "I couldn't find any relevant code to explain.",
         }
 
-    # TODO - create utility function for all of this for each agent as well
-    combined = []
-    for doc in docs:
-        meta = doc.metadata or {}
-        src = meta.get(KEY_SOURCE, KEY_UNKNOWN)
-        idx = meta.get(KEY_CHUNK, "?")
-        snippet = doc.page_content.strip()
-        combined.append(f"# {KEY_SOURCE}: {src} ({KEY_CHUNK} {idx})\n{snippet}")
-
-    code_context = "\n\n".join(combined)
+    code_context = get_combined_text_from_docs(docs)
 
     # Load prompt template
     tmpl_path = os.path.join(
@@ -102,13 +97,7 @@ def explain_code(state: Dict) -> Dict:
     prompt = template.format(code=code_context)
 
     # Initialize LLM
-    model_name = cfg.get(KEY_OPENAI, {}).get(
-        KEY_INFERENCE_MODEL, MODEL_INFERENCE_OPEN_AI
-    )
-    openai_api_key = os.getenv(ENV_OPENAIAPI_KEY)
-    llm = ChatOpenAI(
-        model=model_name, temperature=0, openai_api_key=openai_api_key
-    )
+    llm = OpenAIModel(cfg).inference_model
 
     # Generate explanation
     try:
