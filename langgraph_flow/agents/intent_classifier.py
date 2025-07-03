@@ -29,7 +29,6 @@ def classify_intent(state: AssistantState) -> dict:
     logger.debug("Dispatching intent-classification prompt to LLM")
     try:
         raw = llm.predict(prompt).strip().lower()
-        # TODO - change these options to enums
         if raw not in {"retrieve", "explain", "navigate"}:
             logger.warning(
                 "Unexpected intent '%s'; defaulting to 'retrieve'", raw

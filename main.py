@@ -44,10 +44,13 @@ def main():
     if args.command == KEY_INGEST:
         ingest_flow(cfg)
     else:
-        chat_flow(
-            cfg
-        )  # TODO - add response formatter for each agent, add template format for each of the prompts
+        chat_flow(cfg)
 
 
 if __name__ == "__main__":
+    # TODO - change intent strings to enums
+    # TODO - add response formatter for each agent, add template format for each of the prompts
+    # TODO - Change AI model to singleton
+    # TODO - Delete previous embedding before adding new ones
+    # TODO - If intent is unkown - ask to rephrahse the question. Don't default to anything.
     main()
