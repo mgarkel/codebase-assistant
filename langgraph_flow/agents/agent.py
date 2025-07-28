@@ -1,6 +1,7 @@
 """Base Agent Class that each Agent can inherit from."""
 
 import logging
+from typing import Optional
 
 from langchain import PromptTemplate
 
@@ -21,7 +22,7 @@ class Agent:
     def __init__(
         self,
         agent_type: str,
-        prompt_file: str,
+        prompt_file: Optional[str],
         default_top_k: int,
         is_input_code: bool,
         is_input_question: bool,
@@ -68,13 +69,23 @@ class Agent:
         logger.info(f"Generated {self._agent_type} summary successfully")
         return {**state.dict(), KEY_RESPONSE: result}
 
+    @staticmethod
+    def _format_code_response(code_context, state):
+        response = f"Here are the relevant code snippets:\n\n" + code_context
+        return {**state.dict(), KEY_RESPONSE: response}
+
     def infer(self, state: AssistantState):
         question, cfg = get_question_and_config_from_state(state)
         code_context = get_relevant_code_context_chunks_from_vectorstore(
             cfg, question, self._agent_type, self._default_top_k
         )
-        llm = OpenAIModel(cfg).inference_model
-        prompt = self._get_prompt(question, code_context)
-        runnable = prompt | llm
-        input_params = self._create_llm_infer_params(question, code_context)
-        return self._infer_llm(runnable, input_params, state)
+        # If there is a code to be sent or question to be asked to llm
+        if self._is_input_code or self._is_input_question:
+            llm = OpenAIModel(cfg).inference_model
+            prompt = self._get_prompt(question, code_context)
+            runnable = prompt | llm
+            input_params = self._create_llm_infer_params(question, code_context)
+            return self._infer_llm(runnable, input_params, state)
+        # Else the task is just retrieval of code - llm is not needed
+        else:
+            return self._format_code_response(code_context, state)

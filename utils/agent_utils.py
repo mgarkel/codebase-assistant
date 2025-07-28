@@ -68,17 +68,20 @@ def get_relevant_code_context_chunks_from_vectorstore(
     # Perform similarity search
     try:
         logger.info(
-            "Retrieving top %d snippets for explanation of: %s", top_k, question
+            "Retrieving top %d snippets for %s with question: %s",
+            top_k,
+            agent_name,
+            question,
         )
         docs: List[Document] = store.similarity_search(question, k=top_k)
     except Exception as e:
         logger.error(
-            "Similarity search failed in explainer_agent: %s", e, exc_info=True
+            "Similarity search failed in %s: %s", agent_name, e, exc_info=True
         )
         raise Exception
 
     if not docs:
-        logger.error("No snippets found for explanation query: %s", question)
+        logger.error("No snippets found for %s query: %s", agent_name, question)
         raise Exception
 
     # Combine docs
