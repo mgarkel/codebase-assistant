@@ -2,8 +2,6 @@ import logging
 
 from langgraph.graph import END, StateGraph
 
-from utils.constants import ALLOWED_INTENTS
-
 from .agents.enums import Intent
 from .agents.explainer_agent import explain_code
 from .agents.intent_classifier import classify_intent
@@ -18,10 +16,7 @@ logger = logging.getLogger(__name__)
 def _route(state: AssistantState):
     intent = state.intent
     logger.debug("Routing intent '%s'", intent)
-    if intent in ALLOWED_INTENTS:
-        return intent
-    logger.warning("Unknown intent '%s', defaulting to 'retrieve'", intent)
-    return "retrieve"
+    return intent
 
 
 def build_graph():
