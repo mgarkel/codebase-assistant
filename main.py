@@ -49,6 +49,5 @@ def main():
 
 if __name__ == "__main__":
     # TODO - add response formatter for each agent, add template format for each of the prompts
-    # TODO - Change AI model to singleton
     # TODO - Delete previous embedding before adding new ones
     main()

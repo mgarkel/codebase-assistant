@@ -39,7 +39,7 @@ def get_agent_prompt_template(prompt_template_file: str):
     )
     with open(tmpl_path, "r", encoding=VALUES_UTF_8) as f:
         template = f.read()
-    return template
+    return template.strip()
 
 
 def get_combined_text_from_docs(docs: list) -> str:

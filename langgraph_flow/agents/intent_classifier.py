@@ -1,16 +1,22 @@
 import logging
 
+from langchain import PromptTemplate
+
 from langgraph_flow.models.assistant_state import AssistantState
 from langgraph_flow.models.openai_model import OpenAIModel
 from utils.agent_utils import (
     get_agent_prompt_template,
     get_question_and_config_from_state,
-    llm_infer_prompt,
 )
-from utils.constants import ALLOWED_INTENTS, KEY_INTENT
+from utils.constants import ALLOWED_INTENTS, KEY_INTENT, KEY_QUESTION
 
 logger = logging.getLogger(__name__)
-INTENT_PROMPT_TEMPLATE = "intent_prompt.txt"
+INTENT_PROMPT_TEMPLATE_TEXT = "intent_prompt.txt"
+template_str = get_agent_prompt_template(INTENT_PROMPT_TEMPLATE_TEXT)
+INTENT_PROMPT = PromptTemplate(
+    input_variables=[KEY_QUESTION],
+    template=template_str,
+)
 
 
 def classify_intent(state: AssistantState) -> dict:
@@ -24,23 +30,22 @@ def classify_intent(state: AssistantState) -> dict:
     """
     question, cfg = get_question_and_config_from_state(state)
     llm = OpenAIModel(cfg).inference_model
-    template = get_agent_prompt_template(INTENT_PROMPT_TEMPLATE)
-    prompt = template.format(question=question)
+    runnable = INTENT_PROMPT | llm
 
     logger.debug("Dispatching intent-classification prompt to LLM")
     try:
-        raw = llm_infer_prompt(llm, prompt)
+        raw = runnable.invoke({KEY_QUESTION: question}).content
         while raw not in ALLOWED_INTENTS:
             logger.warning(
                 "Sorry - intent of question was unclear. Please rephrase question"
             )
             question = input("\n❓ Ask your codebase: ").strip()
-            prompt = template.format(question=question)
-            raw = llm_infer_prompt(llm, prompt)
+            raw = runnable.invoke({KEY_QUESTION: question}).content
+            state.question = question
         intent = raw
     except Exception as e:
         logger.error("LLM intent classification failed: %s", e, exc_info=True)
-        intent = "retrieve"
+        raise e
 
     logger.info("Intent classified as '%s'", intent)
     return {**state.dict(), KEY_INTENT: intent}
