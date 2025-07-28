@@ -7,6 +7,7 @@ from langgraph_flow.models.openai_model import OpenAIModel
 from utils.agent_utils import (
     get_agent_prompt_template,
     get_question_and_config_from_state,
+    run_llm,
 )
 from utils.constants import ALLOWED_INTENTS, KEY_INTENT, KEY_QUESTION
 
@@ -34,13 +35,13 @@ def classify_intent(state: AssistantState) -> dict:
 
     logger.debug("Dispatching intent-classification prompt to LLM")
     try:
-        raw = runnable.invoke({KEY_QUESTION: question}).content
+        raw = run_llm(runnable, {KEY_QUESTION: question})
         while raw not in ALLOWED_INTENTS:
             logger.warning(
                 "Sorry - intent of question was unclear. Please rephrase question"
             )
             question = input("\n❓ Ask your codebase: ").strip()
-            raw = runnable.invoke({KEY_QUESTION: question}).content
+            raw = run_llm(runnable, {KEY_QUESTION: question})
             state.question = question
         intent = raw
     except Exception as e:

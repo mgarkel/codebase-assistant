@@ -9,6 +9,7 @@ from utils.agent_utils import (
     get_agent_prompt_template,
     get_question_and_config_from_state,
     get_relevant_code_context_chunks_from_vectorstore,
+    run_llm,
 )
 from utils.constants import (
     DEFAULT_TOP_K_NAVIGATOR,
@@ -47,8 +48,8 @@ def navigate_code(state: AssistantState) -> Dict:
     # Generate navigation summary
     try:
         logger.debug("Sending navigation prompt to LLM")
-        navigation = runnable.invoke(
-            {KEY_QUESTION: question, KEY_CODE: code_context}
+        navigation = run_llm(
+            runnable, {KEY_QUESTION: question, KEY_CODE: code_context}
         )
     except Exception as e:
         logger.error("LLM navigation generation failed: %s", e, exc_info=True)

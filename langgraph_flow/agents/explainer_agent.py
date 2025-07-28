@@ -9,6 +9,7 @@ from utils.agent_utils import (
     get_agent_prompt_template,
     get_question_and_config_from_state,
     get_relevant_code_context_chunks_from_vectorstore,
+    run_llm,
 )
 from utils.constants import (
     DEFAULT_TOP_K_EXPLAINER,
@@ -45,7 +46,7 @@ def explain_code(state: AssistantState) -> Dict:
 
     try:
         logger.debug("Sending explanation prompt to LLM")
-        explanation = runnable.invoke({KEY_CODE: code_context}).content
+        explanation = run_llm(runnable, {KEY_CODE: code_context})
     except Exception as e:
         logger.error("LLM explanation generation failed: %s", e, exc_info=True)
         return {**state, KEY_RESPONSE: "Error: failed to generate explanation."}
