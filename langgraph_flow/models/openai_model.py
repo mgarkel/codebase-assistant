@@ -1,7 +1,6 @@
 import os
 
-from langchain.chat_models import ChatOpenAI
-from langchain.embeddings import OpenAIEmbeddings
+from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 
 from utils.constants import (
     ENV_OPENAIAPI_KEY,

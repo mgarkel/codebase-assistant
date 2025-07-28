@@ -2,6 +2,9 @@ import logging
 
 from langgraph.graph import END, StateGraph
 
+from utils.constants import ALLOWED_INTENTS
+
+from .agents.enums import Intent
 from .agents.explainer_agent import explain_code
 from .agents.intent_classifier import classify_intent
 from .agents.navigator_agent import navigate_code
@@ -15,12 +18,8 @@ logger = logging.getLogger(__name__)
 def _route(state: AssistantState):
     intent = state.intent
     logger.debug("Routing intent '%s'", intent)
-    if intent == "retrieve":
-        return "retrieve"
-    if intent == "explain":
-        return "explain"
-    if intent == "navigate":
-        return "navigate"
+    if intent in ALLOWED_INTENTS:
+        return intent
     logger.warning("Unknown intent '%s', defaulting to 'retrieve'", intent)
     return "retrieve"
 
@@ -39,19 +38,19 @@ def build_graph():
     graph = StateGraph(state_schema=AssistantState)
 
     # Add processing nodes
-    graph.add_node("classify", classify_intent)
-    graph.add_node("retrieve", retrieve_code)
-    graph.add_node("explain", explain_code)
-    graph.add_node("navigate", navigate_code)
+    graph.add_node(Intent.CLASSIFY.value, classify_intent)
+    graph.add_node(Intent.RETRIEVE.value, retrieve_code)
+    graph.add_node(Intent.EXPLAIN.value, explain_code)
+    graph.add_node(Intent.NAVIGATE.value, navigate_code)
 
     # Entry point: classify user intent first
-    graph.set_entry_point("classify")
-    graph.add_conditional_edges("classify", _route)
+    graph.set_entry_point(Intent.CLASSIFY.value)
+    graph.add_conditional_edges(Intent.CLASSIFY.value, _route)
 
     # Mark terminal nodes
-    graph.add_edge("retrieve", END)
-    graph.add_edge("explain", END)
-    graph.add_edge("navigate", END)
+    graph.add_edge(Intent.RETRIEVE.value, END)
+    graph.add_edge(Intent.EXPLAIN.value, END)
+    graph.add_edge(Intent.NAVIGATE.value, END)
 
     logger.info("LangGraph flow built successfully")
     return graph.compile()

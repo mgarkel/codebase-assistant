@@ -1,5 +1,7 @@
 """Module to hold string constants for project."""
 
+from langgraph_flow.agents.enums import Intent
+
 LOG_FORMAT_STYLE = "%(asctime)s [%(levelname)s] %(name)s: %(message)s"
 
 # Keys
@@ -33,7 +35,6 @@ KEY_PERSIST_DIRECTORY = "persist_directory"
 KEY_CHROMA = "chroma"
 KEY_FAISS = "faiss"
 
-
 # Values
 DEFAULT_TOP_K_EXPLAINER = 3
 DEFAULT_TOP_K_NAVIGATOR = 5
@@ -41,6 +42,11 @@ DEFAULT_TOK_K_RETRIEVER = 5
 MODEL_INFERENCE_OPEN_AI = "gpt-4"
 MODEL_EMBEDDING_OPEN_AI = "text-embedding-ada-002"
 VALUES_UTF_8 = "utf-8"
+ALLOWED_INTENTS = {
+    Intent.RETRIEVE.value,
+    Intent.NAVIGATE.value,
+    Intent.EXPLAIN.value,
+}
 
 # Env variables
 ENV_OPENAIAPI_KEY = "OPENAPI_KEY"

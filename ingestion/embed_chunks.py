@@ -1,7 +1,8 @@
 import logging
 import os
 
-from langchain.vectorstores import FAISS, Chroma
+from langchain_chroma import Chroma
+from langchain_community.vectorstores import FAISS
 
 from langgraph_flow.models.openai_model import OpenAIModel
 from utils.constants import (

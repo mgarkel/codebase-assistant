@@ -1,12 +1,14 @@
 import logging
 
+from langgraph_flow.agents.enums import Intent
 from langgraph_flow.models.assistant_state import AssistantState
 from langgraph_flow.models.openai_model import OpenAIModel
 from utils.agent_utils import (
     get_agent_prompt_template,
     get_question_and_config_from_state,
+    llm_infer_prompt,
 )
-from utils.constants import KEY_INTENT
+from utils.constants import ALLOWED_INTENTS, KEY_INTENT
 
 logger = logging.getLogger(__name__)
 INTENT_PROMPT_TEMPLATE = "intent_prompt.txt"
@@ -28,12 +30,12 @@ def classify_intent(state: AssistantState) -> dict:
 
     logger.debug("Dispatching intent-classification prompt to LLM")
     try:
-        raw = llm.predict(prompt).strip().lower()
-        if raw not in {"retrieve", "explain", "navigate"}:
+        raw = llm_infer_prompt(llm, prompt)
+        if raw not in ALLOWED_INTENTS:
             logger.warning(
                 "Unexpected intent '%s'; defaulting to 'retrieve'", raw
             )
-            raw = "retrieve"
+            raw = Intent.RETRIEVE.value
         intent = raw
     except Exception as e:
         logger.error("LLM intent classification failed: %s", e, exc_info=True)

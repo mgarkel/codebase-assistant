@@ -23,6 +23,11 @@ def get_question_and_config_from_state(state: AssistantState) -> tuple:
     return state.question, state.cfg
 
 
+def llm_infer_prompt(llm, prompt: str) -> str:
+    """Invoke LLM prompt."""
+    return llm.invoke(prompt).content.strip().lower()
+
+
 def get_agent_prompt_template(prompt_template_file: str):
     # Load prompt template
     tmpl_path = os.path.join(
