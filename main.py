@@ -48,6 +48,5 @@ def main():
 
 
 if __name__ == "__main__":
-    # TODO - add response formatter for each agent, add template format for each of the prompts
-    # TODO - Delete previous embedding before adding new ones
+    # TODO - Delete previous embedding before adding new ones - need to fix code contexts returned.
     main()
