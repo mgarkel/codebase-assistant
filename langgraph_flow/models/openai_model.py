@@ -1,4 +1,5 @@
 import os
+from threading import Lock
 
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 
@@ -12,7 +13,24 @@ from utils.constants import (
 )
 
 
-class OpenAIModel:
+class SingletonMeta(type):
+    """
+    Thread-safe implementation of Singleton.
+    """
+
+    _instances = {}
+    _lock: Lock = Lock()
+
+    def __call__(cls, *args, **kwargs):
+        # Double-checked locking
+        if cls not in cls._instances:
+            with cls._lock:
+                if cls not in cls._instances:
+                    cls._instances[cls] = super().__call__(*args, **kwargs)
+        return cls._instances[cls]
+
+
+class OpenAIModel(metaclass=SingletonMeta):
     def __init__(self, cfg):
         self.__openai_api_key = os.getenv(ENV_OPENAIAPI_KEY)
         self.__cfg = cfg
@@ -21,7 +39,7 @@ class OpenAIModel:
 
     @property
     def inference_model(self):
-        if not self._inference_model:
+        if self._inference_model is None:
             model_name = self.__cfg.get(KEY_OPENAI, {}).get(
                 KEY_INFERENCE_MODEL, MODEL_INFERENCE_OPEN_AI
             )
@@ -34,7 +52,7 @@ class OpenAIModel:
 
     @property
     def embedding_model(self):
-        if not self._embedding_model:
+        if self._embedding_model is None:
             model_name = self.__cfg.get(KEY_OPENAI, {}).get(
                 KEY_EMBEDDING_MODEL, MODEL_EMBEDDING_OPEN_AI
             )
