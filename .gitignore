@@ -63,3 +63,8 @@ logs/
 
 # Misc
 *.swp
+
+
+vectorstore/
+repo/**
+*.sqlite3
