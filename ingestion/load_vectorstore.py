@@ -5,7 +5,11 @@ from typing import Dict
 from langchain_chroma import Chroma
 
 from langgraph_flow.models.openai_model import OpenAIModel
-from utils.constants import KEY_PERSIST_DIRECTORY, KEY_VECTORSTORE
+from utils.constants import (
+    COLLECTION_NAME,
+    KEY_PERSIST_DIRECTORY,
+    KEY_VECTORSTORE,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +31,9 @@ def load_vectorstore(cfg: Dict):
     try:
         logger.info("Loading Chroma vectorstore from '%s'", persist_dir)
         _VECTORSTORE = Chroma(
-            persist_directory=persist_dir, embedding_function=embeddings
+            persist_directory=persist_dir,
+            embedding_function=embeddings,
+            collection_name=COLLECTION_NAME,
         )
         logger.info("Vectorstore loaded successfully")
         return _VECTORSTORE

@@ -7,6 +7,7 @@ from langchain_chroma import Chroma
 
 from langgraph_flow.models.openai_model import OpenAIModel
 from utils.constants import (
+    COLLECTION_NAME,
     KEY_CONTENT,
     KEY_META,
     KEY_PERSIST_DIRECTORY,
@@ -77,8 +78,6 @@ def embed_documents(
 
     logger.info("Embedding %d chunks into Chroma", len(texts))
 
-    collection_name = "code_chunks"
-
     # Full rebuild
     if reset_index:
         logger.info("Rebuilding Chroma index from scratch")
@@ -88,7 +87,7 @@ def embed_documents(
             metadatas=metadatas,
             ids=ids,
             persist_directory=str(persist_dir),
-            collection_name=collection_name,
+            collection_name=COLLECTION_NAME,
         )
 
     # Incremental upsert
@@ -97,7 +96,7 @@ def embed_documents(
         store = Chroma(
             persist_directory=str(persist_dir),
             embedding_function=embeddings,
-            collection_name=collection_name,
+            collection_name=COLLECTION_NAME,
         )
 
         # Delete Stale ID's

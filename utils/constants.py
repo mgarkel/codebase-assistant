@@ -45,6 +45,7 @@ ALLOWED_INTENTS = {
     Intent.NAVIGATE.value,
     Intent.EXPLAIN.value,
 }
+COLLECTION_NAME = "code_chunks"
 
 # Env variables
 ENV_OPENAIAPI_KEY = "OPENAPI_KEY"
