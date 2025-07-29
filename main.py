@@ -50,5 +50,4 @@ def main():
 if __name__ == "__main__":
     # TODO - Delete previous embedding before adding new ones - need to fix code contexts returned.
     # TODO - Reformat ingestion flow as well
-    # TODO - Rename functions as needed and add doc string comments to entire application for showcaseability.Should be very very easy to read and follow.
     main()
