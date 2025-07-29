@@ -1,12 +1,26 @@
 import logging
-import os
 
-from langchain.chat_models import ChatOpenAI
+from langchain import PromptTemplate
+
+from langgraph_flow.models.assistant_state import AssistantState
+from langgraph_flow.models.openai_model import OpenAIModel
+from utils.agent_utils import (
+    get_agent_prompt_template,
+    get_question_and_config_from_state,
+    run_llm,
+)
+from utils.constants import ALLOWED_INTENTS, KEY_INTENT, KEY_QUESTION
 
 logger = logging.getLogger(__name__)
+INTENT_PROMPT_TEMPLATE_TEXT = "intent_prompt.txt"
+template_str = get_agent_prompt_template(INTENT_PROMPT_TEMPLATE_TEXT)
+INTENT_PROMPT = PromptTemplate(
+    input_variables=[KEY_QUESTION],
+    template=template_str,
+)
 
 
-def classify_intent(state: dict) -> dict:
+def classify_intent(state: AssistantState) -> dict:
     """
     Analyze the user’s question and classify it into one of:
       - 'retrieve' (fetch relevant code snippets)
@@ -15,35 +29,24 @@ def classify_intent(state: dict) -> dict:
 
     Adds 'intent' to the state for downstream routing.
     """
-    question = state.get("question", "").strip()
-    cfg = state.get("cfg", {})
-    model_name = cfg.get("openai", {}).get("inference_model", "gpt-4")
-    openai_api_key = os.getenv("OPENAPI_KEY")
-
-    llm = ChatOpenAI(
-        model=model_name, temperature=0, openai_api_key=openai_api_key
-    )
-
-    # Load navigation prompt template
-    tmpl_path = os.path.join(
-        os.path.dirname(__file__), "..", "prompts", "intent_prompt.txt"
-    )
-    with open(tmpl_path, "r", encoding="utf-8") as f:
-        template = f.read()
-    prompt = template.format(question=question)
+    question, cfg = get_question_and_config_from_state(state)
+    llm = OpenAIModel(cfg).inference_model
+    runnable = INTENT_PROMPT | llm
 
     logger.debug("Dispatching intent-classification prompt to LLM")
     try:
-        raw = llm.predict(prompt).strip().lower()
-        if raw not in {"retrieve", "explain", "navigate"}:
+        raw = run_llm(runnable, {KEY_QUESTION: question})
+        while raw not in ALLOWED_INTENTS:
             logger.warning(
-                "Unexpected intent '%s'; defaulting to 'retrieve'", raw
+                "Sorry - intent of question was unclear. Please rephrase question"
             )
-            raw = "retrieve"
+            question = input("\n❓ Ask your codebase: ").strip()
+            raw = run_llm(runnable, {KEY_QUESTION: question})
+            state.question = question
         intent = raw
     except Exception as e:
         logger.error("LLM intent classification failed: %s", e, exc_info=True)
-        intent = "retrieve"
+        raise e
 
     logger.info("Intent classified as '%s'", intent)
-    return {**state, "intent": intent}
+    return {**state.dict(), KEY_INTENT: intent}

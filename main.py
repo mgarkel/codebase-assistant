@@ -1,5 +1,7 @@
 import argparse
 import logging
+
+from utils.constants import KEY_CHAT, KEY_INGEST
 from utils.util import chat_flow, ingest_flow, load_config, setup_logging
 
 
@@ -10,10 +12,10 @@ def main():
     )
     parser.add_argument(
         "command",
-        choices=["ingest", "chat"],
+        choices=[KEY_INGEST, KEY_CHAT],
         nargs="?",
-        default="chat",
-        help="Mode: 'ingest' to build embeddings, 'chat' to start interactive Q&A",
+        default=KEY_CHAT,
+        help=f"Mode: '{KEY_INGEST}' to build embeddings, '{KEY_CHAT}' to start interactive Q&A",
     )
     parser.add_argument(
         "-c",
@@ -39,13 +41,13 @@ def main():
     cfg = load_config(args.config)
 
     # Dispatch based on command
-    if args.command == "ingest":
+    if args.command == KEY_INGEST:
         ingest_flow(cfg)
     else:
-        chat_flow(
-            cfg
-        )  # TODO - add response formatter for each agent, add template format for each of the prompts
+        chat_flow(cfg)
 
 
 if __name__ == "__main__":
+    # TODO - Delete previous embedding before adding new ones - need to fix code contexts returned.
+    # TODO - Reformat ingestion flow as well
     main()

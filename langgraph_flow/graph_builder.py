@@ -1,29 +1,25 @@
 import logging
-from langgraph.graph import StateGraph, END
-from .agents.intent_classifier import classify_intent
-from .agents.retriever_agent import retrieve_code
+
+from langgraph.graph import END, StateGraph
+
+from .agents.enums import Intent
 from .agents.explainer_agent import explain_code
+from .agents.intent_classifier import classify_intent
 from .agents.navigator_agent import navigate_code
+from .agents.retriever_agent import retrieve_code
 from .models.assistant_state import AssistantState
 
 logger = logging.getLogger(__name__)
 
 
 # Routing based on the classified intent
-def _route(state):
-    intent = state["intent"]  # TODO - change the states to enums
+def _route(state: AssistantState):
+    intent = state.intent
     logger.debug("Routing intent '%s'", intent)
-    if intent == "retrieve":
-        return "retrieve"
-    if intent == "explain":
-        return "explain"
-    if intent == "navigate":
-        return "navigate"
-    logger.warning("Unknown intent '%s', defaulting to 'retrieve'", intent)
-    return "retrieve"
+    return intent
 
 
-def build_graph(cfg: dict):
+def build_graph():
     """
     Build and compile the LangGraph StateGraph for the Codebase Assistant.
 
@@ -37,19 +33,19 @@ def build_graph(cfg: dict):
     graph = StateGraph(state_schema=AssistantState)
 
     # Add processing nodes
-    graph.add_node("intent", classify_intent)
-    graph.add_node("retrieve", retrieve_code)
-    graph.add_node("explain", explain_code)
-    graph.add_node("navigate", navigate_code)
+    graph.add_node(Intent.CLASSIFY.value, classify_intent)
+    graph.add_node(Intent.RETRIEVE.value, retrieve_code)
+    graph.add_node(Intent.EXPLAIN.value, explain_code)
+    graph.add_node(Intent.NAVIGATE.value, navigate_code)
 
     # Entry point: classify user intent first
-    graph.set_entry_point("intent")
-    graph.add_conditional_edges("intent", _route)
+    graph.set_entry_point(Intent.CLASSIFY.value)
+    graph.add_conditional_edges(Intent.CLASSIFY.value, _route)
 
     # Mark terminal nodes
-    graph.add_edge("retrieve", END)
-    graph.add_edge("explain", END)
-    graph.add_edge("navigate", END)
+    graph.add_edge(Intent.RETRIEVE.value, END)
+    graph.add_edge(Intent.EXPLAIN.value, END)
+    graph.add_edge(Intent.NAVIGATE.value, END)
 
     logger.info("LangGraph flow built successfully")
     return graph.compile()

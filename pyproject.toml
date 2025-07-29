@@ -11,14 +11,16 @@ packages = [{ include = "ingestion" }, { include = "langgraph_flow" }, { include
 python = "^3.11"
 langgraph = "*"
 langchain = "*"
-openai = "^0.27.0"
+openai = ">=1.93.0,<2.0.0"
 chromadb = "*"
 gitpython = "^3.1.31"
-tiktoken = "^0.3.3"
+tiktoken = ">=0.9.0,<0.10.0"
 python-dotenv = "^1.0.0"
 streamlit = "^1.25.0"
 toml = "^0.10.2"
 langchain-community = "^0.3.25"
+langchain-openai = "^0.3.28"
+langchain-chroma = "^0.2.5"
 
 
 [tool.poetry.group.dev.dependencies]
@@ -37,10 +39,10 @@ indent-width = 4
 target-version = "py311"  # or whatever your Python version is
 fix = true  # Enable autofix
 exclude = [
-  "pyproject.toml",
-  "data/",
-  "build/",
-  ".venv/",
+    "pyproject.toml",
+    "data/",
+    "build/",
+    ".venv/",
 ]
 
 [tool.ruff.lint]
@@ -51,3 +53,13 @@ ignore = ["E501"]  # Example: ignore long lines if you want
 quote-style = "double"  # or "single"
 indent-style = "space"
 docstring-code-format = true
+
+
+[tool.isort]
+profile = "black"  # aligns spacing and line wrapping with ruff-format
+line_length = 80   # match [tool.ruff].line-length
+multi_line_output = 3
+include_trailing_comma = true
+force_grid_wrap = 0
+use_parentheses = true
+ensure_newline_before_comments = true
