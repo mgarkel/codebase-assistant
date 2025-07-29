@@ -23,9 +23,9 @@ def get_question_and_config_from_state(state: AssistantState) -> tuple:
     return state.question, state.cfg
 
 
-def run_llm(runnable, input_dict: dict) -> str:
+def run_llm(runnable, input_params: dict) -> str:
     """Invoke LLM prompt."""
-    return runnable.invoke(input_dict).content
+    return runnable.invoke(input_params).content
 
 
 def get_agent_prompt_template(prompt_template_file: str):

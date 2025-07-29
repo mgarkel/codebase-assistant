@@ -1,7 +1,7 @@
 """Base Agent Class that each Agent can inherit from."""
 
 import logging
-from typing import Optional
+from typing import Dict, Optional
 
 from langchain import PromptTemplate
 
@@ -41,13 +41,11 @@ class Agent:
             input_params[KEY_CODE] = code_context
         return input_params
 
-    def _get_prompt(self, question: str, code_context: str):
-        input_params = list(
-            self._create_llm_infer_params(question, code_context).keys()
-        )
+    def _get_prompt_template(self, input_params: Dict):
+        input_keys = list(input_params.keys())
         template_str = get_agent_prompt_template(self._prompt_file)
         prompt_template = PromptTemplate(
-            input_variables=input_params, template=template_str
+            input_variables=input_keys, template=template_str
         )
         return prompt_template
 
@@ -79,12 +77,12 @@ class Agent:
         code_context = get_relevant_code_context_chunks_from_vectorstore(
             cfg, question, self._agent_type, self._default_top_k
         )
-        # If there is a code to be sent or question to be asked to llm
+        # If there is a code to be sent and/or question to be asked to llm
         if self._is_input_code or self._is_input_question:
             llm = OpenAIModel(cfg).inference_model
-            prompt = self._get_prompt(question, code_context)
-            runnable = prompt | llm
             input_params = self._create_llm_infer_params(question, code_context)
+            prompt_template = self._get_prompt_template(input_params)
+            runnable = prompt_template | llm
             return self._infer_llm(runnable, input_params, state)
         # Else the task is just retrieval of code - llm is not needed
         else:
