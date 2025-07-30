@@ -48,6 +48,4 @@ def main():
 
 
 if __name__ == "__main__":
-    # TODO - Delete previous embedding before adding new ones - need to fix code contexts returned.
-    # TODO - Reformat ingestion flow as well
     main()
