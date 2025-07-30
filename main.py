@@ -48,6 +48,5 @@ def main():
 
 
 if __name__ == "__main__":
-    # TODO - Delete previous embedding before adding new ones - need to fix code contexts returned.
-    # TODO - Reformat ingestion flow as well
+    # TODO - need to fix get_combined_text_from_docs in agent_utils - need to have a more intelligent way to send this to the chatbot.
     main()

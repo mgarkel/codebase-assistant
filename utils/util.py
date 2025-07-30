@@ -4,18 +4,15 @@ import sys
 import toml
 
 from ingestion.chunk_code import chunk_repository
-from ingestion.embed_chunks import embed_documents
+from ingestion.embed_chunks_into_vectorstore import embed_documents
 from ingestion.ingest_repo import clone_or_update_repo
 from langgraph_flow.graph_builder import build_graph
 from utils.constants import (
     KEY_CONFIG,
     KEY_EXIT,
     KEY_INFO,
-    KEY_LOCAL_PATH,
     KEY_QUESTION,
     KEY_QUIT,
-    KEY_REPO,
-    KEY_URL,
     LOG_FORMAT_STYLE,
 )
 
@@ -64,10 +61,8 @@ def ingest_flow(cfg: dict):
       3. Embed chunks into the vector store
     """
     logger.info("🔄 Starting ingestion pipeline")
-    clone_or_update_repo(
-        cfg[("%s" % KEY_REPO)][KEY_URL], cfg[KEY_REPO][KEY_LOCAL_PATH]
-    )
-    docs = chunk_repository(cfg[KEY_REPO][KEY_LOCAL_PATH])
+    repo_path = clone_or_update_repo(cfg)
+    docs = chunk_repository(repo_path)
     embed_documents(docs, cfg)
     logger.info("✅ Ingestion pipeline completed")
 
