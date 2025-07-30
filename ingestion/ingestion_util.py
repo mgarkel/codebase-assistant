@@ -16,7 +16,7 @@ from utils.constants import (
 def get_persist_dir_and_collection_name_from_config(cfg: Dict) -> Tuple:
     repo_name = cfg[KEY_REPO][KEY_PROJECT_NAME]
     store_cfg = cfg[KEY_VECTORSTORE]
-    collection_name = f"{cfg[KEY_VECTORSTORE][KEY_COLLECTION]}_{repo_name}"
+    collection_name = f"{store_cfg[KEY_COLLECTION]}_{repo_name}"
     persist_dir = (
         Path(store_cfg[KEY_BASE_DIRECTORY]) / repo_name / store_cfg[KEY_SUBPATH]
     )

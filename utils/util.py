@@ -61,8 +61,8 @@ def ingest_flow(cfg: dict):
       3. Embed chunks into the vector store
     """
     logger.info("🔄 Starting ingestion pipeline")
-    dest_path = clone_or_update_repo(cfg)
-    docs = chunk_repository(dest_path)
+    repo_path = clone_or_update_repo(cfg)
+    docs = chunk_repository(repo_path)
     embed_documents(docs, cfg)
     logger.info("✅ Ingestion pipeline completed")
 
