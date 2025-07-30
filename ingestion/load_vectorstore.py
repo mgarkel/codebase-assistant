@@ -1,15 +1,12 @@
 import logging
-import os
 from typing import Dict
 
 from langchain_chroma import Chroma
 
-from langgraph_flow.models.openai_model import OpenAIModel
-from utils.constants import (
-    COLLECTION_NAME,
-    KEY_PERSIST_DIRECTORY,
-    KEY_VECTORSTORE,
+from ingestion.ingestion_util import (
+    get_persist_dir_and_collection_name_from_config,
 )
+from langgraph_flow.models.openai_model import OpenAIModel
 
 logger = logging.getLogger(__name__)
 
@@ -22,18 +19,16 @@ def load_vectorstore(cfg: Dict):
     if _VECTORSTORE:
         return _VECTORSTORE
 
-    store_cfg = cfg.get(KEY_VECTORSTORE, {})
-    persist_dir = store_cfg.get(
-        KEY_PERSIST_DIRECTORY, "vectorstore/chroma_index/"
+    persist_dir, collection_name = (
+        get_persist_dir_and_collection_name_from_config(cfg)
     )
-    os.makedirs(persist_dir, exist_ok=True)
     embeddings = OpenAIModel(cfg).embedding_model
     try:
         logger.info("Loading Chroma vectorstore from '%s'", persist_dir)
         _VECTORSTORE = Chroma(
             persist_directory=persist_dir,
             embedding_function=embeddings,
-            collection_name=COLLECTION_NAME,
+            collection_name=collection_name,
         )
         logger.info("Vectorstore loaded successfully")
         return _VECTORSTORE

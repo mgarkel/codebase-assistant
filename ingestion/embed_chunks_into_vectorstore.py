@@ -1,18 +1,14 @@
 import hashlib
 import logging
-from pathlib import Path
 from typing import Dict, List
 
 from langchain_chroma import Chroma
 
-from langgraph_flow.models.openai_model import OpenAIModel
-from utils.constants import (
-    COLLECTION_NAME,
-    KEY_CONTENT,
-    KEY_META,
-    KEY_PERSIST_DIRECTORY,
-    KEY_VECTORSTORE,
+from ingestion.ingestion_util import (
+    get_persist_dir_and_collection_name_from_config,
 )
+from langgraph_flow.models.openai_model import OpenAIModel
+from utils.constants import KEY_CONTENT, KEY_META
 
 logger = logging.getLogger(__name__)
 
@@ -63,9 +59,9 @@ def embed_documents(
         logger.warning("No documents to embed; skipping.")
         return
 
-    # Unpack config
-    store_cfg = cfg[KEY_VECTORSTORE]
-    persist_dir = Path(store_cfg[KEY_PERSIST_DIRECTORY])
+    persist_dir, collection_name = (
+        get_persist_dir_and_collection_name_from_config(cfg)
+    )
     persist_dir.mkdir(parents=True, exist_ok=True)
 
     # Prepare data
@@ -87,7 +83,7 @@ def embed_documents(
             metadatas=metadatas,
             ids=ids,
             persist_directory=str(persist_dir),
-            collection_name=COLLECTION_NAME,
+            collection_name=collection_name,
         )
 
     # Incremental upsert
@@ -96,7 +92,7 @@ def embed_documents(
         store = Chroma(
             persist_directory=str(persist_dir),
             embedding_function=embeddings,
-            collection_name=COLLECTION_NAME,
+            collection_name=collection_name,
         )
 
         # Delete Stale ID's
