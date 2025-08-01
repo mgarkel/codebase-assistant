@@ -8,6 +8,16 @@ from typing import Dict, List, Optional, Set
 from git import InvalidGitRepositoryError, Repo
 from langchain.text_splitter import TokenTextSplitter
 
+from utils.constants import (
+    KEY_CHUNK_INDEX,
+    KEY_CODE_LANGUAGE,
+    KEY_COMMIT_HASH,
+    KEY_CONTENT,
+    KEY_META,
+    KEY_RELATIVE_PATH,
+    KEY_REPO_URL,
+)
+
 logger = logging.getLogger(__name__)
 
 DEFAULT_EXTENSIONS = {".py", ".js", ".java", ".ts", ".md"}
@@ -79,13 +89,17 @@ def _chunk_file(
 
             docs.append(
                 {
-                    "content": chunk,
-                    "meta": {
-                        "relative_path": str(path.relative_to(repo_root)),
-                        "chunk_index": idx,
-                        "language": lang,
-                        **({"repo_url": repo_url} if repo_url else {}),
-                        **({"commit_hash": commit_hash} if commit_hash else {}),
+                    KEY_CONTENT: chunk,
+                    KEY_META: {
+                        KEY_RELATIVE_PATH: str(path.relative_to(repo_root)),
+                        KEY_CHUNK_INDEX: idx,
+                        KEY_CODE_LANGUAGE: lang,
+                        **({KEY_REPO_URL: repo_url} if repo_url else {}),
+                        **(
+                            {KEY_COMMIT_HASH: commit_hash}
+                            if commit_hash
+                            else {}
+                        ),
                     },
                 }
             )
