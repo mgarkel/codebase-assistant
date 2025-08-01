@@ -53,7 +53,7 @@ def get_combined_text_from_docs(docs: list) -> str:
         lang = meta.get(KEY_CODE_LANGUAGE)
         snippet = doc.page_content.strip()
         combined.append(
-            f" '''{KEY_CODE_LANGUAGE}:{lang} {KEY_RELATIVE_PATH}: {path} ({KEY_CHUNK_INDEX} {idx})\n{snippet}''' "
+            f"''' {KEY_CODE_LANGUAGE}: {lang}, {KEY_RELATIVE_PATH}: {path}, ({KEY_CHUNK_INDEX} {idx})\n{snippet} '''"
         )
 
     combined_code_context = "\n\n".join(combined)
