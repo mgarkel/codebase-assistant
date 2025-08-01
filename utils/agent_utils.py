@@ -46,14 +46,14 @@ def get_agent_prompt_template(prompt_template_file: str):
 def get_combined_text_from_docs(docs: list) -> str:
     """Unpacks the documents, join the data and returns as a single str."""
     combined = []
-    for doc in docs:
+    for i, doc in enumerate(docs):
         meta = doc.metadata or {}
         path = meta.get(KEY_RELATIVE_PATH, KEY_UNKNOWN)
         idx = meta.get(KEY_CHUNK_INDEX, "?")
         lang = meta.get(KEY_CODE_LANGUAGE)
         snippet = doc.page_content.strip()
         combined.append(
-            f" '''{KEY_CODE_LANGUAGE}:{lang} {KEY_RELATIVE_PATH}: {path} ({KEY_CHUNK_INDEX} {idx})\n{snippet}''' "
+            f"''' {KEY_CODE_LANGUAGE}: {lang}, {KEY_RELATIVE_PATH}: {path}, ({KEY_CHUNK_INDEX} {idx})\n{snippet} '''\n"
         )
 
     combined_code_context = "\n\n".join(combined)

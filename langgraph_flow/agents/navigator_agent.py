@@ -14,6 +14,6 @@ def navigate_code(state: AssistantState) -> Dict:
         prompt_file=NAVIGATOR_PROMPT_TEMPLATE_TEXT,
         default_top_k=DEFAULT_TOP_K_NAVIGATOR,
         is_input_code=True,
-        is_input_question=True,
+        is_input_question=False,
     )
     return agent.infer(state)
