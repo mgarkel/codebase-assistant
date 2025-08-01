@@ -9,9 +9,10 @@ from langchain.schema import Document
 from ingestion.load_vectorstore import load_vectorstore
 from langgraph_flow.models.assistant_state import AssistantState
 from utils.constants import (
-    KEY_CHUNK,
+    KEY_CHUNK_INDEX,
+    KEY_CODE_LANGUAGE,
     KEY_CONFIG_TOP_K,
-    KEY_SOURCE,
+    KEY_RELATIVE_PATH,
     KEY_UNKNOWN,
     VALUES_UTF_8,
 )
@@ -47,10 +48,13 @@ def get_combined_text_from_docs(docs: list) -> str:
     combined = []
     for doc in docs:
         meta = doc.metadata or {}
-        src = meta.get(KEY_SOURCE, KEY_UNKNOWN)
-        idx = meta.get(KEY_CHUNK, "?")
+        path = meta.get(KEY_RELATIVE_PATH, KEY_UNKNOWN)
+        idx = meta.get(KEY_CHUNK_INDEX, "?")
+        lang = meta.get(KEY_CODE_LANGUAGE)
         snippet = doc.page_content.strip()
-        combined.append(f"# {KEY_SOURCE}: {src} ({KEY_CHUNK} {idx})\n{snippet}")
+        combined.append(
+            f" '''{KEY_CODE_LANGUAGE}:{lang} {KEY_RELATIVE_PATH}: {path} ({KEY_CHUNK_INDEX} {idx})\n{snippet}''' "
+        )
 
     combined_code_context = "\n\n".join(combined)
     return combined_code_context
