@@ -48,5 +48,11 @@ def main():
 
 
 if __name__ == "__main__":
-    # TODO - need to fix get_combined_text_from_docs in agent_utils - need to have a more intelligent way to send this to the chatbot.
+    # TODO - Add a more general prompt - like find all the inefficiencies in the code. Or Security vulnerabilities in the code.
+    # TODO - add an efficiency or enhancement agent. An Agent that will provide you with new code updates.
+    # TODO - integrate MCP server if possible
+    # TODO - Think about how to evaluate performance of the project and accuracy of results.
+    # TODO - Think about how to do cost reduction as well.
+    # TODO - Add memory to the agents
+    # TODO - Try to make the project self maintaining and self-healing.
     main()
