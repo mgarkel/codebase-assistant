@@ -3,10 +3,6 @@ import sys
 
 import toml
 
-from ingestion.chunk_code import chunk_repository
-from ingestion.embed_chunks_into_vectorstore import embed_documents
-from ingestion.ingest_repo import clone_or_update_repo
-from langgraph_flow.graph_builder import build_graph
 from utils.constants import (
     KEY_CONFIG,
     KEY_EXIT,
@@ -15,6 +11,15 @@ from utils.constants import (
     KEY_QUIT,
     LOG_FORMAT_STYLE,
 )
+from utils.performance_monitor import instrument_pipeline, monitor
+
+# Auto-instrument functions BEFORE importing them
+instrument_pipeline()
+
+from ingestion.chunk_code import chunk_repository
+from ingestion.embed_chunks_into_vectorstore import embed_documents
+from ingestion.ingest_repo import clone_or_update_repo
+from langgraph_flow.graph_builder import build_graph
 
 logger = logging.getLogger(__name__)
 
@@ -60,11 +65,23 @@ def ingest_flow(cfg: dict):
       2. Chunk source files
       3. Embed chunks into the vector store
     """
-    logger.info("🔄 Starting ingestion pipeline")
-    repo_path = clone_or_update_repo(cfg)
-    docs = chunk_repository(repo_path)
-    embed_documents(docs, cfg)
-    logger.info("✅ Ingestion pipeline completed")
+    # Configure performance monitoring from settings
+    monitor.configure(cfg)
+
+    with monitor.measure("ingest_pipeline_total"):
+        logger.info("🔄 Starting ingestion pipeline")
+        repo_path = clone_or_update_repo(cfg)
+        docs = chunk_repository(repo_path)
+        embed_documents(docs, cfg)
+        logger.info("✅ Ingestion pipeline completed")
+
+    # Print performance summary
+    summary = monitor.get_report().get_summary()
+    logger.info("📊 Performance Summary:")
+    for operation, stats in summary.items():
+        logger.info(
+            f"  {operation}: {stats['avg_duration_seconds']:.2f}s avg, {stats['max_memory_mb']:.1f}MB peak"
+        )
 
 
 def chat_flow(cfg: dict):
@@ -74,6 +91,9 @@ def chat_flow(cfg: dict):
       - Prompts the user for questions
       - Routes through agents and prints responses
     """
+    # Configure performance monitoring from settings
+    monitor.configure(cfg)
+
     logger.info("🔧 Building LangGraph flow")
     graph = build_graph()
     logger.info(
@@ -85,13 +105,27 @@ def chat_flow(cfg: dict):
             question = input("\n❓ Ask your codebase: ").strip()
             if question.lower() in (KEY_EXIT, KEY_QUIT):
                 logging.info("👋 Exiting chat loop")
+
+                # Print performance summary on exit
+                summary = monitor.get_report().get_summary()
+                if summary:
+                    logger.info("📊 Chat Session Performance Summary:")
+                    for operation, stats in summary.items():
+                        logger.info(
+                            f"  {operation}: {stats['count']} calls, {stats['avg_duration_seconds']:.2f}s avg"
+                        )
                 break
 
             try:
-                # Pass both the question and the full config into the graph state
-                state = graph.invoke({KEY_QUESTION: question, KEY_CONFIG: cfg})
-                response = state.get("response", "No answer available.")
-                logger.info(f"\n💡 {response}\n")
+                with monitor.measure(
+                    "chat_query", {"question_length": len(question)}
+                ):
+                    # Pass both the question and the full config into the graph state
+                    state = graph.invoke(
+                        {KEY_QUESTION: question, KEY_CONFIG: cfg}
+                    )
+                    response = state.get("response", "No answer available.")
+                    logger.info(f"\n💡 {response}\n")
             except Exception:
                 logger.exception("Error during graph execution")
     except KeyboardInterrupt:
