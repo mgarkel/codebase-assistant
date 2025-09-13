@@ -9,6 +9,7 @@ from ingestion.ingestion_util import (
 )
 from langgraph_flow.models.openai_model import OpenAIModel
 from utils.constants import KEY_CONTENT, KEY_META
+from utils.performance_monitor import measure_embedding_operation
 
 logger = logging.getLogger(__name__)
 
@@ -77,14 +78,15 @@ def embed_documents(
     # Full rebuild
     if reset_index:
         logger.info("Rebuilding Chroma index from scratch")
-        store = Chroma.from_texts(
-            texts=texts,
-            embedding=embeddings,
-            metadatas=metadatas,
-            ids=ids,
-            persist_directory=str(persist_dir),
-            collection_name=collection_name,
-        )
+        with measure_embedding_operation("full_index_rebuild", len(texts)):
+            store = Chroma.from_texts(
+                texts=texts,
+                embedding=embeddings,
+                metadatas=metadatas,
+                ids=ids,
+                persist_directory=str(persist_dir),
+                collection_name=collection_name,
+            )
 
     # Incremental upsert
     else:
@@ -109,17 +111,20 @@ def embed_documents(
 
             # Batch‑upsert only new chunks
         else:
-            for i in range(0, len(to_add_texts), batch_size):
-                batch_texts = to_add_texts[i : i + batch_size]
-                batch_meta = to_add_meta[i : i + batch_size]
-                batch_ids = to_add_ids[i : i + batch_size]
-                store.add_texts(
-                    texts=batch_texts,
-                    metadatas=batch_meta,
-                    ids=batch_ids,
-                )
-                logger.info(
-                    "Upserted new chunks %d–%d", i, i + len(batch_texts)
-                )
+            with measure_embedding_operation(
+                "incremental_upsert", len(to_add_texts)
+            ):
+                for i in range(0, len(to_add_texts), batch_size):
+                    batch_texts = to_add_texts[i : i + batch_size]
+                    batch_meta = to_add_meta[i : i + batch_size]
+                    batch_ids = to_add_ids[i : i + batch_size]
+                    store.add_texts(
+                        texts=batch_texts,
+                        metadatas=batch_meta,
+                        ids=batch_ids,
+                    )
+                    logger.info(
+                        "Upserted new chunks %d–%d", i, i + len(batch_texts)
+                    )
 
     logger.info("Chroma index updated successfully at %s", persist_dir)

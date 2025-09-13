@@ -58,6 +58,88 @@ def load_config(path: str):
         sys.exit(1)
 
 
+def _get_llm_metrics(operation: str, stats: dict) -> list:
+    """Extract LLM-specific metrics for display."""
+    extras = []
+    if "llm" in operation.lower() or "run_llm" in operation:
+        if "total_tokens_input" in stats and "total_tokens_output" in stats:
+            total_tokens = (
+                stats["total_tokens_input"] + stats["total_tokens_output"]
+            )
+            extras.append(
+                f"~{total_tokens} tokens ({stats['total_tokens_input']}+{stats['total_tokens_output']})"
+            )
+        elif "total_tokens_input" in stats:
+            extras.append(f"~{stats['total_tokens_input']} input tokens")
+
+        if "total_cost_usd" in stats:
+            extras.append(f"~${stats['total_cost_usd']:.4f}")
+    return extras
+
+
+def _get_vectorstore_metrics(operation: str, stats: dict) -> list:
+    """Extract vector store-specific metrics for display."""
+    extras = []
+    vectorstore_keywords = [
+        "vectorstore",
+        "similarity_search",
+        "get_relevant_code",
+    ]
+    if any(keyword in operation.lower() for keyword in vectorstore_keywords):
+        if "total_vectorstore_results" in stats:
+            extras.append(f"{stats['total_vectorstore_results']} results")
+        if "avg_results_per_query" in stats:
+            extras.append(f"{stats['avg_results_per_query']:.1f} avg/query")
+    return extras
+
+
+def _get_embedding_metrics(operation: str, stats: dict) -> list:
+    """Extract embedding-specific metrics for display."""
+    extras = []
+    if "embed" in operation.lower():
+        if (
+            stats.get("count", 0) > 0
+            and stats.get("avg_duration_seconds", 0) > 0
+        ):
+            extras.append("embedding rate tracked")
+    return extras
+
+
+def _get_cache_metrics(stats: dict) -> list:
+    """Extract cache-specific metrics for display."""
+    extras = []
+    if "cache_hit_rate" in stats:
+        extras.append(f"{stats['cache_hit_rate']:.1%} cache hit")
+    return extras
+
+
+def _format_operation_summary(operation: str, stats: dict) -> str:
+    """Format a single operation's performance summary with relevant metrics."""
+    base_info = f"  {operation}: {stats['avg_duration_seconds']:.2f}s avg, {stats['max_memory_mb']:.1f}MB peak"
+
+    # Collect all relevant metrics
+    extras = []
+    extras.extend(_get_llm_metrics(operation, stats))
+    extras.extend(_get_vectorstore_metrics(operation, stats))
+    extras.extend(_get_embedding_metrics(operation, stats))
+    extras.extend(_get_cache_metrics(stats))
+
+    if extras:
+        base_info += f" ({', '.join(extras)})"
+
+    return base_info
+
+
+def _print_performance_summary(title: str = "📊 Performance Summary:"):
+    """Print formatted performance summary with operation-specific metrics."""
+    summary = monitor.get_report().get_summary()
+    if summary:
+        logger.info(title)
+        for operation, stats in summary.items():
+            formatted_line = _format_operation_summary(operation, stats)
+            logger.info(formatted_line)
+
+
 def ingest_flow(cfg: dict):
     """
     Ingestion pipeline:
@@ -65,7 +147,6 @@ def ingest_flow(cfg: dict):
       2. Chunk source files
       3. Embed chunks into the vector store
     """
-    # Configure performance monitoring from settings
     monitor.configure(cfg)
 
     with monitor.measure("ingest_pipeline_total"):
@@ -75,13 +156,46 @@ def ingest_flow(cfg: dict):
         embed_documents(docs, cfg)
         logger.info("✅ Ingestion pipeline completed")
 
-    # Print performance summary
+    _print_performance_summary()
+
+
+def _format_chat_summary_line(operation: str, stats: dict) -> str:
+    """Format a single operation's chat session summary with call counts."""
+    base_info = f"  {operation}: {stats['count']} calls, {stats['avg_duration_seconds']:.2f}s avg"
+
+    # Collect all relevant metrics
+    extras = []
+    extras.extend(_get_llm_metrics(operation, stats))
+    extras.extend(_get_vectorstore_metrics(operation, stats))
+    extras.extend(_get_cache_metrics(stats))
+
+    if extras:
+        base_info += f" ({', '.join(extras)})"
+
+    return base_info
+
+
+def _print_chat_summary():
+    """Print chat session performance summary on exit."""
     summary = monitor.get_report().get_summary()
-    logger.info("📊 Performance Summary:")
-    for operation, stats in summary.items():
-        logger.info(
-            f"  {operation}: {stats['avg_duration_seconds']:.2f}s avg, {stats['max_memory_mb']:.1f}MB peak"
-        )
+    if summary:
+        logger.info("📊 Chat Session Performance Summary:")
+        for operation, stats in summary.items():
+            formatted_line = _format_chat_summary_line(operation, stats)
+            logger.info(formatted_line)
+
+
+def _handle_user_question(graph, question: str, cfg: dict):
+    """Process a single user question through the graph."""
+    with monitor.measure("chat_query", {"question_length": len(question)}):
+        state = graph.invoke({KEY_QUESTION: question, KEY_CONFIG: cfg})
+        response = state.get("response", "No answer available.")
+        logger.info(f"\n💡 {response}\n")
+
+
+def _should_exit(question: str) -> bool:
+    """Check if user wants to exit the chat."""
+    return question.lower() in (KEY_EXIT, KEY_QUIT)
 
 
 def chat_flow(cfg: dict):
@@ -91,7 +205,6 @@ def chat_flow(cfg: dict):
       - Prompts the user for questions
       - Routes through agents and prints responses
     """
-    # Configure performance monitoring from settings
     monitor.configure(cfg)
 
     logger.info("🔧 Building LangGraph flow")
@@ -103,30 +216,16 @@ def chat_flow(cfg: dict):
     try:
         while True:
             question = input("\n❓ Ask your codebase: ").strip()
-            if question.lower() in (KEY_EXIT, KEY_QUIT):
-                logging.info("👋 Exiting chat loop")
 
-                # Print performance summary on exit
-                summary = monitor.get_report().get_summary()
-                if summary:
-                    logger.info("📊 Chat Session Performance Summary:")
-                    for operation, stats in summary.items():
-                        logger.info(
-                            f"  {operation}: {stats['count']} calls, {stats['avg_duration_seconds']:.2f}s avg"
-                        )
+            if _should_exit(question):
+                logger.info("👋 Exiting chat loop")
+                _print_chat_summary()
                 break
 
             try:
-                with monitor.measure(
-                    "chat_query", {"question_length": len(question)}
-                ):
-                    # Pass both the question and the full config into the graph state
-                    state = graph.invoke(
-                        {KEY_QUESTION: question, KEY_CONFIG: cfg}
-                    )
-                    response = state.get("response", "No answer available.")
-                    logger.info(f"\n💡 {response}\n")
+                _handle_user_question(graph, question, cfg)
             except Exception:
                 logger.exception("Error during graph execution")
+
     except KeyboardInterrupt:
         logger.info("⚡ Chat interrupted by user")

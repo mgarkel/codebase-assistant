@@ -16,6 +16,10 @@ from utils.constants import (
     KEY_UNKNOWN,
     VALUES_UTF_8,
 )
+from utils.performance_monitor import (
+    measure_llm_operation,
+    measure_vectorstore_operation,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +30,20 @@ def get_question_and_config_from_state(state: AssistantState) -> tuple:
 
 def run_llm(runnable, input_params: dict) -> str:
     """Invoke LLM prompt."""
-    return runnable.invoke(input_params).content
+    # Get input text for token estimation
+    input_text = str(input_params)
+    # Try different attribute names for model identification
+    model_name = getattr(runnable, "model", None) or getattr(
+        runnable, "model_name", "unknown"
+    )
+
+    with measure_llm_operation(
+        "run_llm_advanced", input_text, model_name
+    ) as llm_monitor:
+        response = runnable.invoke(input_params)
+        response_text = response.content
+        llm_monitor.set_response(response_text)
+        return response_text
 
 
 def get_agent_prompt_template(prompt_template_file: str):
@@ -69,7 +86,7 @@ def get_relevant_code_context_chunks_from_vectorstore(
     # Load vectorstore
     store = load_vectorstore(cfg)
 
-    # Perform similarity search
+    # Perform similarity search with advanced monitoring
     try:
         logger.info(
             "Retrieving top %d snippets for %s with question: %s",
@@ -77,7 +94,11 @@ def get_relevant_code_context_chunks_from_vectorstore(
             agent_name,
             question,
         )
-        docs: List[Document] = store.similarity_search(question, k=top_k)
+        with measure_vectorstore_operation(
+            "vectorstore_similarity_search", question, top_k
+        ) as vs_monitor:
+            docs: List[Document] = store.similarity_search(question, k=top_k)
+            vs_monitor.set_results(docs)
     except Exception as e:
         logger.error(
             "Similarity search failed in %s: %s", agent_name, e, exc_info=True
