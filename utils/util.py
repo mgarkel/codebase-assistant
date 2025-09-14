@@ -67,7 +67,7 @@ def _get_llm_metrics(operation: str, stats: dict) -> list:
                 stats["total_tokens_input"] + stats["total_tokens_output"]
             )
             extras.append(
-                f"~{total_tokens} tokens ({stats['total_tokens_input']}+{stats['total_tokens_output']})"
+                f"~{total_tokens} tokens (input: {stats['total_tokens_input']} + output: {stats['total_tokens_output']})"
             )
         elif "total_tokens_input" in stats:
             extras.append(f"~{stats['total_tokens_input']} input tokens")

@@ -365,6 +365,8 @@ class LLMMonitor:
         self.model_name = model_name
         self.start_time = None
         self.start_memory = None
+        self.metric = None  # Store reference to our specific metric
+        self.response_text = None  # Store response text until metric is created
 
     def __enter__(self):
         if not monitor.enabled or not monitor._should_monitor_operation(
@@ -392,7 +394,7 @@ class LLMMonitor:
             "input_length": len(self.input_text),
         }
 
-        metric = _create_base_metric(
+        self.metric = _create_base_metric(
             self.operation,
             self.start_time,
             end_time,
@@ -400,46 +402,53 @@ class LLMMonitor:
             end_memory,
             metadata,
         )
-        metric.tokens_input = estimated_input_tokens
+        self.metric.tokens_input = estimated_input_tokens
 
-        monitor.report.add_metric(metric)
-        monitor._check_performance_warnings(metric)
+        # If response was set before metric was created, process it now
+        if self.response_text is not None:
+            self._update_response_metrics(self.response_text)
+
+        monitor.report.add_metric(self.metric)
+        monitor._check_performance_warnings(self.metric)
         logger.info(
-            f"LLM: {self.operation} took {metric.duration_seconds:.3f}s, "
+            f"LLM: {self.operation} took {self.metric.duration_seconds:.3f}s, "
             f"~{estimated_input_tokens} input tokens"
+        )
+
+    def _update_response_metrics(self, response_text: str):
+        """Helper method to update response metrics on a metric."""
+        # Estimate output tokens
+        estimated_output_tokens = len(response_text) // 4
+        self.metric.tokens_output = estimated_output_tokens
+
+        # Estimate cost (rough pricing for GPT-4: $0.03/1k input, $0.06/1k output)
+        if "gpt-4" in self.model_name.lower():
+            input_cost = (self.metric.tokens_input or 0) * 0.03 / 1000
+            output_cost = estimated_output_tokens * 0.06 / 1000
+            self.metric.tokens_cost_usd = input_cost + output_cost
+        elif "gpt-3.5" in self.model_name.lower():
+            # GPT-3.5-turbo pricing: $0.0015/1k input, $0.002/1k output
+            input_cost = (self.metric.tokens_input or 0) * 0.0015 / 1000
+            output_cost = estimated_output_tokens * 0.002 / 1000
+            self.metric.tokens_cost_usd = input_cost + output_cost
+
+        logger.info(
+            f"LLM response processed: {estimated_output_tokens} output tokens, model: {self.model_name}, cost: ${self.metric.tokens_cost_usd or 0:.4f}"
         )
 
     def set_response(self, response_text: str):
         """Update the metric with response information for output tokens and cost."""
-        if (
-            self.enabled
-            and hasattr(monitor.report, "metrics")
-            and monitor.report.metrics
-        ):
-            # Update the most recent metric (which should be ours)
-            latest_metric = monitor.report.metrics[-1]
+        if not self.enabled:
+            return
 
-            if latest_metric.operation == self.operation:
-                # Estimate output tokens
-                estimated_output_tokens = len(response_text) // 4
-                latest_metric.tokens_output = estimated_output_tokens
+        if self.metric is not None:
+            # Metric already exists, update it directly
+            self._update_response_metrics(response_text)
+        else:
+            # Metric hasn't been created yet, store for later use in __exit__
+            self.response_text = response_text
 
-                # Estimate cost (rough pricing for GPT-4: $0.03/1k input, $0.06/1k output)
-                if "gpt-4" in self.model_name.lower():
-                    input_cost = (latest_metric.tokens_input or 0) * 0.03 / 1000
-                    output_cost = estimated_output_tokens * 0.06 / 1000
-                    latest_metric.tokens_cost_usd = input_cost + output_cost
-                elif "gpt-3.5" in self.model_name.lower():
-                    # GPT-3.5-turbo pricing: $0.0015/1k input, $0.002/1k output
-                    input_cost = (
-                        (latest_metric.tokens_input or 0) * 0.0015 / 1000
-                    )
-                    output_cost = estimated_output_tokens * 0.002 / 1000
-                    latest_metric.tokens_cost_usd = input_cost + output_cost
-
-                logger.debug(
-                    f"LLM response processed: {estimated_output_tokens} output tokens, model: {self.model_name}, cost: ${latest_metric.tokens_cost_usd or 0:.4f}"
-                )
+        logger.info(f"LLM response updated for operation {self.operation}")
 
 
 def measure_llm_operation(
