@@ -404,7 +404,7 @@ class LLMMonitor:
 
         monitor.report.add_metric(metric)
         monitor._check_performance_warnings(metric)
-        logger.debug(
+        logger.info(
             f"LLM: {self.operation} took {metric.duration_seconds:.3f}s, "
             f"~{estimated_input_tokens} input tokens"
         )
@@ -459,6 +459,7 @@ class VectorStoreMonitor:
         self.start_time = None
         self.start_memory = None
         self.metric = None  # Store reference to our specific metric
+        self.results_count = None  # Store results count until metric is created
 
     def __enter__(self):
         if not monitor.enabled or not monitor._should_monitor_operation(
@@ -492,24 +493,33 @@ class VectorStoreMonitor:
         )
         self.metric.vectorstore_query_count = 1
         self.metric.vectorstore_results_count = (
-            0  # Will be updated by set_results if called
+            self.results_count if self.results_count is not None else 0
         )
 
         monitor.report.add_metric(self.metric)
         monitor._check_performance_warnings(self.metric)
-        logger.debug(
+        logger.info(
             f"VectorStore: {self.operation} took {self.metric.duration_seconds:.3f}s, "
             f"returned {self.metric.vectorstore_results_count}/{self.top_k} results"
         )
 
     def set_results(self, results):
         """Update the result count after the operation."""
-        if self.enabled and self.metric is not None:
-            results_count = len(results) if hasattr(results, "__len__") else 0
+        if not self.enabled:
+            return
+
+        results_count = len(results) if hasattr(results, "__len__") else 0
+
+        if self.metric is not None:
+            # Metric already exists, update it directly
             self.metric.vectorstore_results_count = results_count
-            logger.debug(
-                f"VectorStore results updated: {results_count} results for operation {self.operation}"
-            )
+        else:
+            # Metric hasn't been created yet, store for later use in __exit__
+            self.results_count = results_count
+
+        logger.info(
+            f"VectorStore results updated: {results_count} results for operation {self.operation}"
+        )
 
 
 def measure_vectorstore_operation(operation: str, query: str, top_k: int = 5):

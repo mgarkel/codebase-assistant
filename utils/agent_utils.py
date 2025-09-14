@@ -36,6 +36,7 @@ def run_llm(runnable, input_params: dict) -> str:
     model_name = getattr(runnable, "model", None) or getattr(
         runnable, "model_name", "unknown"
     )
+    model_name = "gpt-4"
 
     with measure_llm_operation(
         "run_llm_advanced", input_text, model_name
